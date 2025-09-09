@@ -27,11 +27,11 @@ export const { auth, signIn, signOut, handlers: { GET, POST } } = NextAuth({
   session: { strategy: 'jwt' },
   callbacks: {
     jwt({ token, user }) {
-      token.role = user?.role ?? token.role ?? 'member';
+      (token as any).role = (user as any)?.role ?? (token as any).role ?? 'member';
       return token;
     },
     session({ session, token }) {
-      session.user.role = token.role ?? 'member';
+      (session.user as any).role = (token as any).role ?? 'member';
       return session;
     }
   },
