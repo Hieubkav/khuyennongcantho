@@ -23,6 +23,7 @@ export const { auth, signIn, signOut, handlers: { GET, POST } } = NextAuth({
       }
     })
   ],
+  trustHost: true,
   session: { strategy: 'jwt' },
   callbacks: {
     jwt({ token, user }) {
