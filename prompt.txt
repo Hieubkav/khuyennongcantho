@@ -1,24 +1,4 @@
-Dự án lỗi ở /docs nè 
-
-
-## Error Type
-Runtime Error
-
-## Error Message
-Expected component `Tab` to be defined: you likely forgot to import, pass, or provide it.
-
-
-    at _missingMdxReference (content\docs\index.mdx.js?collection=docs&hash=1757429709189:853:9)
-    at _createMdxContent (content\docs\index.mdx.js?collection=docs&hash=1757429709189:409:13)
-    at MDXContent (content\docs\index.mdx.js?collection=docs&hash=1757429709189:850:8)
-    at Page (src\app\docs\[[...slug]]\page.tsx:24:7)
-
-## Code Frame
-  851 | }
-  852 | function _missingMdxReference(id, component) {
-> 853 |   throw new Error("Expected " + (component ? "component" : "object") + " `" + id + "` to be defined: you likely forgot to import, pass, or provide it.");
-      |         ^
-  854 | }
-  855 |
-
-Next.js version: 15.5.0 (Turbopack)
+web để quản lý  cho admin va nhân viên sẽ làm ở /admin cái cho công chúng 
+▌coi sẽ bỏ đi => còn trang chủ sẽ dùng để xây lại web của kndvnn.cantho.vn 
+▌voiws giao diện đẹp mắt hơn dùng shadcn/tailwind 4 và thôn tin tĩnh trong 
+▌data_khuyennong => cập nhật nội dung 

@@ -1,9 +1,13 @@
 ---
-title: Hệ Thống Quản Lý Giá Nông Sản Theo Chợ
+title: Hệ Thống Quản Lý Giá Nông Sản
 description: Đặc tả dự án, kiến trúc, chức năng, quy tắc và lộ trình triển khai
 ---
 
-Hệ thống web quản lý danh mục nông sản theo chợ, nhập giá hằng ngày, lưu lịch sử, báo cáo và trang công khai tra cứu. Tài liệu này là điểm bắt đầu cho toàn bộ đội dự án.
+Dự án bao gồm hai phần chính:
+1.  **Trang quản trị (`/admin`):** Hệ thống nội bộ dành cho quản trị viên và thành viên để quản lý danh mục nông sản, nhập giá hằng ngày, xem báo cáo và quản lý người dùng. Dữ liệu được lưu trữ trên Convex DB.
+2.  **Trang công khai:** Bao gồm trang chủ (landing page) sử dụng dữ liệu từ `data_khuyennong`, và trang tra cứu giá (`/tracuu`) sử dụng dữ liệu trực tiếp từ Convex DB (chung với trang admin).
+
+Tài liệu này là điểm bắt đầu cho toàn bộ đội dự án.
 
 <Callout>
 	Giai đoạn đầu triển khai tại TP. Cần Thơ (quy mô 100–1000 chợ). Lịch nhắc nhập liệu 16:30 (Asia/Ho_Chi_Minh) và gửi email qua Resend.
@@ -20,16 +24,15 @@ Hệ thống web quản lý danh mục nông sản theo chợ, nhập giá hằn
 
 ## Mục tiêu & Phạm vi
 
-- Minh bạch và dễ vận hành: quản lý giá theo (chợ, sản phẩm, ngày) với lịch sử đầy đủ.
-- Phân quyền rõ ràng: Admin/Thành viên; thành viên chỉ nhập trong chợ được gán.
-- Công khai tra cứu: người dân xem bảng giá theo chợ và ngày, tối ưu SEO.
-- Khả năng mở rộng: bắt đầu ở Cần Thơ, sẵn sàng mở rộng toàn quốc.
+- **Trang quản trị (`/admin`):** Cung cấp công cụ minh bạch và dễ vận hành để quản lý giá theo (chợ, sản phẩm, ngày) với lịch sử đầy đủ và phân quyền rõ ràng (Admin/Thành viên).
+- **Trang công khai:** Xây dựng trang chủ (landing page) với dữ liệu từ `data_khuyennong`. Trang tra cứu (`/tracuu`) sẽ cho phép người dân xem bảng giá theo chợ/ngày, tối ưu SEO, và sử dụng dữ liệu trực tiếp từ Convex DB.
+- **Khả năng mở rộng:** Bắt đầu ở Cần Thơ, sẵn sàng mở rộng toàn quốc.
 
 ## Đối tượng sử dụng
 
-- Admin: quản trị người dùng/role, CRUD chợ/sản phẩm/đơn vị, nhập/xuất, báo cáo.
-- Thành viên: nhập/chỉnh sửa giá theo chợ được phân công, xem báo cáo phạm vi.
-- Công chúng: tra cứu bảng giá (read-only, không đăng nhập).
+- **Admin (tại `/admin`):** quản trị người dùng/role, CRUD chợ/sản phẩm/đơn vị, nhập/xuất, báo cáo.
+- **Thành viên (tại `/admin`):** nhập/chỉnh sửa giá theo chợ được phân công, xem báo cáo phạm vi.
+- **Công chúng (tại `/` và `/tracuu`):** xem landing page và tra cứu bảng giá (read-only, không đăng nhập).
 
 ## Kiến trúc
 
@@ -42,52 +45,47 @@ Hệ thống web quản lý danh mục nông sản theo chợ, nhập giá hằn
 
 ## Chức năng chính
 
-### 1) Tài khoản & phân quyền
+### 1) Tài khoản & phân quyền (Trang `/admin`)
 
 - Đăng ký/đăng nhập (email/mật khẩu), xác minh email, đặt lại mật khẩu qua email.
 - Vai trò: `admin | member`; kích hoạt/vô hiệu; gán thành viên ↔ chợ.
-- Bảo vệ mọi API bằng guards: xác thực, active, role, quyền theo chợ (ví dụ: `requireRole('admin')`, `requireMarketAccess(marketId)`).
+- Bảo vệ mọi API bằng guards: xác thực, active, role, quyền theo chợ (ví dụ: `requireRole('''admin''')`, `requireMarketAccess(marketId)`).
 
-### 2) Quản lý chợ
+### 2) Quản lý chợ (Trang `/admin`)
 
 - Tạo/sửa/kích hoạt; trường: mã, tên, địa chỉ, tỉnh/thành–quận/huyện–phường/xã, đặc điểm.
 - Chọn địa giới từ JSON VN; có tìm kiếm theo tên/aliases.
 
-### 3) Quản lý sản phẩm & đơn vị tính
+### 3) Quản lý sản phẩm & đơn vị tính (Trang `/admin`)
 
 - Sản phẩm: tên, đơn vị mặc định, trạng thái active, thứ tự hiển thị.
 - Đơn vị tính: danh sách mặc định (kg, g, tấn, bó, túi, chai, lít, trái, cây, nải, chục), cho phép thêm mới và bật/tắt.
 
-### 4) Giá nông sản hằng ngày
+### 4) Giá nông sản hằng ngày (Trang `/admin`)
 
 - Nhập từng dòng theo ngày/chợ; kiểm soát: không ngày tương lai, giá > 0.
 - Duy nhất theo (chợ, sản phẩm, ngày); cập nhật sẽ ghi lịch sử before/after.
 - Cảnh báo lệch bất thường (so với hôm trước) và yêu cầu ghi chú khi vượt ngưỡng.
 
-### 5) Lịch sử & nhật ký hệ thống
+### 5) Lịch sử & nhật ký hệ thống (Trang `/admin`)
 
 - Lưu mọi thay đổi giá: ai, khi nào, trước/sau, hành động (insert/update/delete).
 - Audit log cho CRUD danh mục, phân quyền, nhập/xuất dữ liệu.
 - Trang tra cứu theo bộ lọc: chợ, sản phẩm, người dùng, ngày.
 
-### 6) Báo cáo & thống kê
+### 6) Báo cáo & thống kê (Trang `/admin`)
 
 - Coverage theo ngày/chợ: tỷ lệ sản phẩm đã nhập giá.
 - Xu hướng giá theo sản phẩm/chợ; top sản phẩm cập nhật; chợ hoạt động tích cực.
 - Xuất CSV/Excel từ màn báo cáo.
 
-### 7) Nhập/Xuất dữ liệu
+### 7) Nhập/Xuất dữ liệu (Trang `/admin`)
 
 - Xuất Excel/CSV: cột chuẩn (Date, MarketCode, MarketName, Product, Unit, PriceVND, Editor, Notes).
 - Nhập Excel/CSV: parse → map cột → validate (zod) → preview → xác nhận → ghi hàng loạt transactional + history + audit.
 - File mẫu sinh từ danh mục hiện tại (sản phẩm active + đơn vị mặc định), có sheet hướng dẫn.
 
-### 8) Trang công khai
-
-- Tra cứu bảng giá theo chợ/ngày; URL chia sẻ; SEO (metadata, schema.org `Dataset`).
-- Cache nhẹ (revalidate 60–300s) tuỳ lưu lượng.
-
-### 9) Cron & email
+### 8) Cron & email (Hệ thống)
 
 - 16:30: email nhắc chợ/thành viên chưa nhập đủ cho ngày hiện tại (timezone `Asia/Ho_Chi_Minh`).
 - 23:55: snapshot dữ liệu ngày (coverage, totals, top hoạt động) phục vụ báo cáo.
@@ -96,7 +94,7 @@ Hệ thống web quản lý danh mục nông sản theo chợ, nhập giá hằn
 ## RBAC & Bảo mật
 
 - Vai trò: `admin` (toàn quyền), `member` (giới hạn theo chợ gán).
-- Guards: `requireAuth`, `requireActiveProfile`, `requireRole('admin')`, `requireMarketAccess(marketId)`.
+- Guards: `requireAuth`, `requireActiveProfile`, `requireRole('''admin''')`, `requireMarketAccess(marketId)`.
 - Email verification bắt buộc trước khi nhập liệu; reset password token một lần (TTL 30 phút).
 - Rate-limit: đăng nhập, reset, bulkUpsert theo IP + user.
 - Secrets: không lưu mật khẩu thô; sử dụng hash an toàn; không commit khóa bí mật.
@@ -128,18 +126,18 @@ Hệ thống web quản lý danh mục nông sản theo chợ, nhập giá hằn
 ## Nhập/Xuất dữ liệu và Cron
 
 <Tabs>
-	<Tab value="nhap" label="Nhập Excel/CSV">
+	<Tab value="nhap" label="Nhập Excel/CSV (Admin)">
 		<Steps>
 			<Step title="Tải file và ánh xạ cột">Hỗ trợ `Date`, `MarketCode/MarketName`, `Product`, `Unit`, `PriceVND`, `Notes`.</Step>
-			<Step title="Kiểm tra & xác thực">Zod validate; kiểm tra tồn tại chợ/sản phẩm, đơn vị; ngày hợp lệ; giá &gt; 0; trùng (chợ+sp+ngày) sẽ xử lý cập nhật.</Step>
+			<Step title="Kiểm tra & xác thực">Zod validate; kiểm tra tồn tại chợ/sản phẩm, đơn vị; ngày hợp lệ; giá > 0; trùng (chợ+sp+ngày) sẽ xử lý cập nhật.</Step>
 			<Step title="Xem trước & xác nhận">Hiển thị lỗi/cảnh báo; người dùng xác nhận trước khi ghi.</Step>
 			<Step title="Ghi hàng loạt (transactional)">Lưu bản ghi, tạo history + audit; trả về thống kê thành công/thất bại.</Step>
 		</Steps>
 	</Tab>
-	<Tab value="xuat" label="Xuất Excel/CSV">
+	<Tab value="xuat" label="Xuất Excel/CSV (Admin)">
 		- Lọc theo ngày/chợ; lựa chọn cột chuẩn; kèm metadata (thời gian tạo, người tạo).
 	</Tab>
-	<Tab value="cron" label="Cron & Email">
+	<Tab value="cron" label="Cron & Email (Hệ thống)">
 		- 16:30: nhắc nhở nhập liệu qua email (Resend) cho thị trường còn thiếu.
 		- 23:55: snapshot coverage/ngày; phục vụ báo cáo và theo dõi.
 	</Tab>
@@ -147,10 +145,10 @@ Hệ thống web quản lý danh mục nông sản theo chợ, nhập giá hằn
 
 ## SEO, Hiệu năng & Chất lượng
 
-- SEO: `generateMetadata` động theo ngày/chợ; schema.org `Dataset`; Open Graph; URL chia sẻ.
-- Hiệu năng: index phù hợp; phân trang; virtualization bảng lớn; caching nhẹ trang công khai.
-- Kiểm thử: Vitest (validators, guards, rules) và Playwright (đăng nhập, nhập giá, nhập/xuất).
-- Chất lượng: oxlint (`bun check`), TS strict (`bun check-types`); giám sát Sentry.
+- **Trang công khai:** `generateMetadata` động theo ngày/chợ; schema.org `Dataset`; Open Graph; URL chia sẻ.
+- **Hệ thống:** index phù hợp; phân trang; virtualization bảng lớn; caching nhẹ trang công khai.
+- **Kiểm thử:** Vitest (validators, guards, rules) và Playwright (đăng nhập, nhập giá, nhập/xuất).
+- **Chất lượng:** oxlint (`bun check`), TS strict (`bun check-types`); giám sát Sentry.
 
 ## Cấu hình môi trường
 
@@ -161,10 +159,10 @@ Hệ thống web quản lý danh mục nông sản theo chợ, nhập giá hằn
 ## Lộ trình triển khai
 
 <Steps>
-	<Step title="Sprint 1">Schema + RBAC + Auth + CRUD chợ/sản phẩm/đơn vị + JSON địa giới + gán thành viên.</Step>
-	<Step title="Sprint 2">Nhập giá đơn lẻ + lịch sử + audit + trang công khai + SEO cơ bản.</Step>
-	<Step title="Sprint 3">Nhập/xuất Excel + báo cáo coverage/trend + cron (16:30, 23:55) + email Resend.</Step>
-	<Step title="Sprint 4">Tối ưu hiệu năng, giám sát Sentry, polish UI, mở rộng báo cáo.</Step>
+	<Step title="Sprint 1 (Admin)">Schema + RBAC + Auth + CRUD chợ/sản phẩm/đơn vị + JSON địa giới + gán thành viên.</Step>
+	<Step title="Sprint 2 (Admin & Public)">Nhập giá đơn lẻ + lịch sử + audit + **xây dựng trang công khai (Landing Page & /tracuu)** + SEO cơ bản.</Step>
+	<Step title="Sprint 3 (Admin)">Nhập/xuất Excel + báo cáo coverage/trend + cron (16:30, 23:55) + email Resend.</Step>
+	<Step title="Sprint 4 (All)">Tối ưu hiệu năng, giám sát Sentry, polish UI, mở rộng báo cáo.</Step>
 </Steps>
 
 ## Liên kết nhanh
