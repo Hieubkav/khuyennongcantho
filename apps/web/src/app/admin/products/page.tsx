@@ -131,7 +131,7 @@ export default function AdminProductsPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {products.products.map((product) => (
+                  {products.products.map((product: any) => (
                     <tr key={product._id}>
                       <td className="px-6 py-4 whitespace-nowrap">{product.name}</td>
                       <td className="px-6 py-4 whitespace-nowrap">{product.slug}</td>

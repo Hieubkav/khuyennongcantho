@@ -110,7 +110,7 @@ export default function AdminMarketsPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {markets.markets.map((market) => (
+                  {markets.markets.map((market: any) => (
                     <tr key={market._id}>
                       <td className="px-6 py-4 whitespace-nowrap">{market.name}</td>
                       <td className="px-6 py-4 whitespace-nowrap">{market.slug}</td>

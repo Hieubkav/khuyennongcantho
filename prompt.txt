@@ -1,52 +1,70 @@
-Sửa lỗi deploy Vercel — Monorepo + Bun + Next 15 + NextAuth v5 + Convex
-
-1) Sửa lỗi TypeScript "ReactNode phải import dạng type-only"
-   - Bối cảnh log Vercel (rút gọn):
-     - ./src/app/admin/layout.tsx:3:10 — ReactNode cần import dạng type khi "verbatimModuleSyntax" bật.
-   - Việc cần làm:
-     - File: apps/web/src/app/admin/layout.tsx
-     - Đổi: `import { ReactNode } from 'react'` → `import type { ReactNode } from 'react'`.
-
-2) NextAuth v5 trên Vercel (App Router)
-   - Đảm bảo route auth dùng Node runtime và disable cache:
-     - File: apps/web/src/app/api/auth/[...nextauth]/route.ts
-       - Có: `export const runtime = 'nodejs'`
-       - Có: `export const dynamic = 'force-dynamic'`
-       - Có: `export { GET, POST } from '@/auth'`
-
-3) Cấu hình dự án Vercel (khuyến nghị Option A — build từ repo root)
-   - General → Root Directory: để trống (repo root).
-   - Build & Development:
-     - Install Command: `bun install`
-     - Build Command: `bun run build` (root script gọi `turbo build`)
-     - Output Directory: `apps/web/.next`
-     - Node.js Version: 20
-
-4) Cấu hình thay thế (Option B — Root Directory = apps/web)
-   - Root Directory: `apps/web`
-   - Install Command: `cd .. && bun install && cd apps/web`
-   - Build Command: `bun run build`
-   - Output Directory: `.next`
-   - Node.js Version: 20
-
-5) Biến môi trường (Vercel → Settings → Environment Variables)
-   - NEXT_PUBLIC_CONVEX_URL = https://<your-convex>.convex.cloud
-   - NEXTAUTH_URL = https://<your-vercel-domain>
-   - AUTH_SECRET = (chuỗi ngẫu nhiên ≥ 32 ký tự)
-   - ADMIN_EMAIL = admin@example.com
-   - ADMIN_PASSWORD = changeme
-
-6) Liên kết workspace `@dohy/backend`
-   - Nhập API Convex ở FE qua: `@dohy/backend/convex/_generated/api`.
-   - Lỗi "Module not found ... @dohy/backend" → dùng Option A hoặc B (Install từ thư mục cha) để Vercel cài workspaces.
-
-7) Kiểm tra sau deploy
-   - `GET /api/auth/providers` có `credentials`.
-   - `/login` đăng nhập bằng ENV → vào `/admin`.
-   - `/admin/markets` tạo market OK.
-   - `/admin/products` hiển thị đơn vị từ Convex, tạo product OK.
-
-8) Lưu ý type khi build CI
-   - Tránh import type dưới dạng value (ví dụ `ReactNode`) khi `verbatimModuleSyntax: true`.
-   - Nếu cần, dùng `import type { T } from '...'` nhất quán.
-
+[05:17:02.979] Running build in Washington, D.C., USA (East) – iad1
+[05:17:02.979] Build machine configuration: 2 cores, 8 GB
+[05:17:02.995] Cloning github.com/Hieubkav/khuyennongcantho (Branch: master, Commit: 1f27a4b)
+[05:17:03.003] Skipping build cache, deployment was triggered without cache.
+[05:17:04.121] Cloning completed: 1.126s
+[05:17:04.438] Running "vercel build"
+[05:17:04.847] Vercel CLI 47.0.5
+[05:17:04.999] > Detected Turbo. Adjusting default settings...
+[05:17:05.159] Running "install" command: `bun install`...
+[05:17:05.201] bun install v1.2.21 (7c45ed97)
+[05:17:05.230] Resolving dependencies
+[05:17:06.457] Resolved, downloaded and extracted [50]
+[05:17:12.340] Saved lockfile
+[05:17:12.341] 
+[05:17:12.341] + @tailwindcss/postcss@4.1.13
+[05:17:12.342] + @types/mdx@2.0.13
+[05:17:12.342] + @types/node@20.19.13 (v24.3.1 available)
+[05:17:12.342] + @types/react@19.1.12
+[05:17:12.342] + @types/react-dom@19.1.9
+[05:17:12.343] + tailwindcss@4.1.13
+[05:17:12.343] + typescript@5.9.2
+[05:17:12.343] + @tanstack/react-form@1.19.3 (v1.19.5 available)
+[05:17:12.344] + class-variance-authority@0.7.1
+[05:17:12.345] + clsx@2.1.1
+[05:17:12.345] + convex@1.26.2 (v1.27.0 available)
+[05:17:12.345] + fumadocs-core@15.7.9 (v15.7.10 available)
+[05:17:12.346] + fumadocs-mdx@11.8.3 (v11.9.0 available)
+[05:17:12.346] + fumadocs-ui@15.7.9 (v15.7.10 available)
+[05:17:12.346] + lucide-react@0.487.0 (v0.543.0 available)
+[05:17:12.346] + next@15.5.0 (v15.5.2 available)
+[05:17:12.346] + next-auth@5.0.0-beta.29
+[05:17:12.347] + next-themes@0.4.6
+[05:17:12.347] + radix-ui@1.4.3
+[05:17:12.348] + react@19.1.1
+[05:17:12.356] + react-dom@19.1.1
+[05:17:12.359] + sonner@2.0.7
+[05:17:12.359] + tailwind-merge@3.3.1
+[05:17:12.359] + tw-animate-css@1.3.8
+[05:17:12.359] + zod@4.1.5
+[05:17:12.360] 
+[05:17:12.361] 787 packages installed [7.17s]
+[05:17:12.385] Detected Next.js version: 15.5.0
+[05:17:12.385] Running "bun run build"
+[05:17:12.389] $ next build
+[05:17:13.923] Attention: Next.js now collects completely anonymous telemetry regarding usage.
+[05:17:13.924] This information is used to shape Next.js' roadmap and prioritize features.
+[05:17:13.924] You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+[05:17:13.924] https://nextjs.org/telemetry
+[05:17:13.924] 
+[05:17:14.274]    ▲ Next.js 15.5.0
+[05:17:14.276] 
+[05:17:14.922]    Creating an optimized production build ...
+[05:17:14.968] [MDX] updated map file in 16.30701799999997ms
+[05:17:36.742]  ✓ Compiled successfully in 21.7s
+[05:17:36.782]    Linting and checking validity of types ...
+[05:17:43.475] Failed to compile.
+[05:17:43.475] 
+[05:17:43.478] ./src/app/admin/markets/page.tsx:113:41
+[05:17:43.478] Type error: Parameter 'market' implicitly has an 'any' type.
+[05:17:43.479] 
+[05:17:43.479] [0m [90m 111 |[39m                 [33m<[39m[33m/[39m[33mthead[39m[33m>[39m
+[05:17:43.479]  [90m 112 |[39m                 [33m<[39m[33mtbody[39m className[33m=[39m[32m"bg-white divide-y divide-gray-200"[39m[33m>[39m
+[05:17:43.479] [31m[1m>[22m[39m[90m 113 |[39m                   {markets[33m.[39mmarkets[33m.[39mmap((market) [33m=>[39m (
+[05:17:43.479]  [90m     |[39m                                         [31m[1m^[22m[39m
+[05:17:43.479]  [90m 114 |[39m                     [33m<[39m[33mtr[39m key[33m=[39m{market[33m.[39m_id}[33m>[39m
+[05:17:43.479]  [90m 115 |[39m                       [33m<[39m[33mtd[39m className[33m=[39m[32m"px-6 py-4 whitespace-nowrap"[39m[33m>[39m{market[33m.[39mname}[33m<[39m[33m/[39m[33mtd[39m[33m>[39m
+[05:17:43.479]  [90m 116 |[39m                       [33m<[39m[33mtd[39m className[33m=[39m[32m"px-6 py-4 whitespace-nowrap"[39m[33m>[39m{market[33m.[39mslug}[33m<[39m[33m/[39m[33mtd[39m[33m>[39m[0m
+[05:17:43.504] Next.js build worker exited with code: 1 and signal: null
+[05:17:43.551] error: script "build" exited with code 1
+[05:17:43.559] Error: Command "bun run build" exited with 1
