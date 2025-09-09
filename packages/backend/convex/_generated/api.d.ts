@@ -14,6 +14,7 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as healthCheck from "../healthCheck.js";
+import type * as seeds from "../seeds.js";
 import type * as todos from "../todos.js";
 
 /**
@@ -26,6 +27,7 @@ import type * as todos from "../todos.js";
  */
 declare const fullApi: ApiFromModules<{
   healthCheck: typeof healthCheck;
+  seeds: typeof seeds;
   todos: typeof todos;
 }>;
 export declare const api: FilterApi<

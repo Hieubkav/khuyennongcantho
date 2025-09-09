@@ -1,4 +1,25 @@
-web để quản lý  cho admin va nhân viên sẽ làm ở /admin cái cho công chúng 
-▌coi sẽ bỏ đi => còn trang chủ sẽ dùng để xây lại web của kndvnn.cantho.vn 
-▌voiws giao diện đẹp mắt hơn dùng shadcn/tailwind 4 và thôn tin tĩnh trong 
-▌data_khuyennong => cập nhật nội dung 
+Seed Đơn Vị Đo Mặc Định                                         
+                                                                                  
+  - Bối cảnh:                                                                     
+      - Dựa trên schema mới của bảng units ở Bước 2: { code, name, active,        
+  createdAt } với index by_code.                                                  
+  - Mục tiêu:                                                                     
+      - Tạo seed idempotent cho units với danh sách mã: kg, g, ta, tan, bo, tui,  
+  chai, lit, trai, cay, noi, chuc.                                                
+      - Mỗi item có dạng: { code, name, active: true, createdAt: Date.now() },    
+  trong đó name là nhãn dễ đọc (ví dụ: kg → Kilogram, g → Gram, ta → Tạ, tan →    
+  Tấn, bo → Bó, tui → Túi, chai → Chai, lit → Lít, trai → Trái, cay → Cây, noi →  
+  Nồi, chuc → Chục).                                                              
+  - Việc phải làm:                                                                
+      - Thêm file packages/backend/convex/seeds.ts.                               
+      - Tạo mutation seedUnits:                                                   
+      - Duyệt danh sách trên, kiểm tra tồn tại theo `code` với index `by_code`;   
+  nếu chưa có thì `insert`, nếu có thì bỏ qua (idempotent).                       
+  - Không thêm endpoint/public API ở FE; chạy seed từ CLI Convex.                 
+  - Cách chạy seed (CLI):                                                         
+      - Bắt đầu dev một lần để có kết nối: npx convex dev --once.                 
+      - Gọi seed: npx convex run seeds.seedUnits.                                 
+  - Tiêu chí nghiệm thu:                                                          
+      - File mới: packages/backend/convex/seeds.ts.                               
+      - Chạy npx convex run seeds.seedUnits lần 1 tạo đủ ≥ 12 bản ghi trong units.      - Chạy lại lần 2 không tạo trùng (đếm không tăng).                          
+      - Không ảnh hưởng FE (trang /todos vẫn hoạt động).   
