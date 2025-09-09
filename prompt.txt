@@ -1,23 +1,52 @@
-## Error Type
-Build Error
+Sửa lỗi deploy Vercel — Monorepo + Bun + Next 15 + NextAuth v5 + Convex
 
-## Error Message
-Module not found: Can't resolve 'next-auth'
+1) Sửa lỗi TypeScript "ReactNode phải import dạng type-only"
+   - Bối cảnh log Vercel (rút gọn):
+     - ./src/app/admin/layout.tsx:3:10 — ReactNode cần import dạng type khi "verbatimModuleSyntax" bật.
+   - Việc cần làm:
+     - File: apps/web/src/app/admin/layout.tsx
+     - Đổi: `import { ReactNode } from 'react'` → `import type { ReactNode } from 'react'`.
 
-## Build Output
-./apps/web/src/auth.ts:1:1
-Module not found: Can't resolve 'next-auth'
-> 1 | import NextAuth from "next-auth";
-    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  2 | import Credentials from "next-auth/providers/credentials";
-  3 |
-  4 | export const { auth, signIn, signOut, handlers: { GET, POST } } = NextAuth({
+2) NextAuth v5 trên Vercel (App Router)
+   - Đảm bảo route auth dùng Node runtime và disable cache:
+     - File: apps/web/src/app/api/auth/[...nextauth]/route.ts
+       - Có: `export const runtime = 'nodejs'`
+       - Có: `export const dynamic = 'force-dynamic'`
+       - Có: `export { GET, POST } from '@/auth'`
 
-Import trace:
-  Server Component:
-    ./apps/web/src/auth.ts
-    ./apps/web/src/app/admin/layout.tsx
+3) Cấu hình dự án Vercel (khuyến nghị Option A — build từ repo root)
+   - General → Root Directory: để trống (repo root).
+   - Build & Development:
+     - Install Command: `bun install`
+     - Build Command: `bun run build` (root script gọi `turbo build`)
+     - Output Directory: `apps/web/.next`
+     - Node.js Version: 20
 
-https://nextjs.org/docs/messages/module-not-found
+4) Cấu hình thay thế (Option B — Root Directory = apps/web)
+   - Root Directory: `apps/web`
+   - Install Command: `cd .. && bun install && cd apps/web`
+   - Build Command: `bun run build`
+   - Output Directory: `.next`
+   - Node.js Version: 20
 
-Next.js version: 15.5.0 (Turbopack)
+5) Biến môi trường (Vercel → Settings → Environment Variables)
+   - NEXT_PUBLIC_CONVEX_URL = https://<your-convex>.convex.cloud
+   - NEXTAUTH_URL = https://<your-vercel-domain>
+   - AUTH_SECRET = (chuỗi ngẫu nhiên ≥ 32 ký tự)
+   - ADMIN_EMAIL = admin@example.com
+   - ADMIN_PASSWORD = changeme
+
+6) Liên kết workspace `@dohy/backend`
+   - Nhập API Convex ở FE qua: `@dohy/backend/convex/_generated/api`.
+   - Lỗi "Module not found ... @dohy/backend" → dùng Option A hoặc B (Install từ thư mục cha) để Vercel cài workspaces.
+
+7) Kiểm tra sau deploy
+   - `GET /api/auth/providers` có `credentials`.
+   - `/login` đăng nhập bằng ENV → vào `/admin`.
+   - `/admin/markets` tạo market OK.
+   - `/admin/products` hiển thị đơn vị từ Convex, tạo product OK.
+
+8) Lưu ý type khi build CI
+   - Tránh import type dưới dạng value (ví dụ `ReactNode`) khi `verbatimModuleSyntax: true`.
+   - Nếu cần, dùng `import type { T } from '...'` nhất quán.
+
