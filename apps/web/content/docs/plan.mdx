@@ -1,0 +1,163 @@
+---
+title: Kế hoạch phát triển Hệ Thống Quản Lý Giá Nông Sản
+description: Kế hoạch Shape Up 12 giờ và Kanban thực thi
+---
+
+# Kế hoạch phát triển Hệ Thống Quản Lý Giá Nông Sản
+
+## 📌 Kế hoạch Shape Up
+
+- Appetite: 12 giờ (hôm nay).
+- Shape – Vấn đề: Cần MVP quản lý và công bố giá nông sản theo chợ/sản phẩm/ngày, có RBAC cơ bản và trang tra cứu công khai, để triển khai thí điểm tại Cần Thơ.
+- Shape – Ranh giới: Chỉ triển khai tối thiểu cho dữ liệu, nhập giá đơn lẻ, CRUD danh mục, bảo vệ truy cập và một trang tra cứu; không tối ưu UI phức tạp, không báo cáo nâng cao, chưa cần cron/email chạy thật trong 12h.
+- Shape – Phạm vi: Next.js 15 (App Router) + Convex (schema, server functions) + Auth.js (email/mật khẩu) + trang Admin tối thiểu + trang Public `/tracuu` + seed đơn vị đo; history đơn giản cho giá.
+- Shape – Ngoài phạm vi: Dashboard thống kê nâng cao, nhập/xuất Excel/CSV hàng loạt, cron 16:30/23:55 chạy thật, email template hoàn chỉnh, SEO nâng cao, giám sát Sentry, virtualization bảng lớn.
+- Shape – Giải pháp phác thảo: 
+  - Convex: định nghĩa bảng `units, products, markets, profiles, market_members, prices, price_history` và hàm server CRUD + guards `requireAuth/requireRole/requireMarketAccess`.
+  - Admin: layout tối giản, bảng danh sách + form tạo/sửa cho `markets, products`, form nhập giá (theo chợ/ngày/sản phẩm/đơn vị/giá, validate cơ bản).
+  - Public: trang `/tracuu` SSR đọc từ Convex, lọc theo chợ/ngày, bảng đơn giản.
+  - Auth: Auth.js Credentials (email/mật khẩu), xác thực cơ bản, chặn truy cập Admin khi chưa đăng nhập/không đủ quyền.
+
+- Cycle (1 ngày – 12 tính năng trọng tâm):
+  1) Thiết lập môi trường `.env.local` và kết nối Convex
+  2) Tạo schema Convex: `units, products, markets, prices, profiles, market_members`
+  3) Seed danh mục đơn vị đo mặc định (`kg, g, tạ, tấn, bó, túi, chai, lít, trái, cây, nải, chục`)
+  4) Guards Convex: `requireAuth`, `requireRole('admin')`, `requireMarketAccess`
+  5) Thiết lập Auth.js (Credentials) đăng ký/đăng nhập cơ bản
+  6) Admin layout + điều hướng cơ bản (`/admin`)
+  7) Admin Markets: danh sách + tạo/sửa/kích hoạt tối thiểu
+  8) Admin Products: danh sách + tạo/sửa/kích hoạt tối thiểu
+  9) Admin Prices: form nhập giá theo chợ/ngày + validate (`>0`, không ngày tương lai)
+  10) Ghi `price_history` before/after khi tạo/cập nhật giá
+  11) Public `/tracuu`: bảng xem giá theo chợ/ngày (SSR, phân trang đơn giản)
+  12) Landing page: hiển thị dữ liệu `data_khuyennong` tối thiểu
+
+- Deliverables (demo/ship được):
+  - Repo chạy `apps/web` kết nối Convex, có Auth hoạt động ở `/admin`.
+  - CRUD tối thiểu cho chợ và sản phẩm; seed đơn vị đo.
+  - Form nhập giá ghi dữ liệu và sinh `price_history`.
+  - Trang `/tracuu` công khai hiển thị bảng giá theo chợ/ngày.
+  - Landing page hiển thị mô tả/data tĩnh `data_khuyennong`.
+
+- Risks/Trade-offs:
+  - Thời gian gấp: cắt bớt polish UI; chấp nhận bảng/ form tối giản.
+  - Auth/email: chỉ dùng Credentials, bỏ xác minh email để giảm độ phức tạp.
+  - Dữ liệu lớn: chưa tối ưu virtualization; chấp nhận phân trang đơn giản.
+  - RBAC chi tiết theo chợ: triển khai guard theo `marketId` ở mức tối thiểu.
+  - SEO nâng cao: lùi sau; chỉ meta cơ bản nếu kịp.
+  - Cron/email: chưa bật thật; để sau khi có dữ liệu ổn định.
+
+- Assumptions (giả định khi thiếu thông tin):
+  - Đã có dự án Convex (Cloud hoặc local) khả dụng cho môi trường dev.
+  - Khóa `NEXT_PUBLIC_CONVEX_URL` có thể cấp trong ngày hôm nay.
+  - Sử dụng Auth.js Credentials provider (email/mật khẩu) cho tốc độ.
+  - Chưa cần xác minh email và reset password trong 12h.
+  - `data_khuyennong` sẵn trong repo hoặc có JSON tĩnh để render landing.
+  - UI dùng Tailwind/shadcn sẵn, nhưng chấp nhận HTML/TSX tối giản khi thiếu.
+  - Bảng `/tracuu` chỉ lọc theo chợ/ngày, chưa cần lọc nâng cao.
+  - Đơn vị đo mặc định đủ dùng cho demo, có thể chỉnh sau.
+  - Mốc thời gian/ timezone dùng `Asia/Ho_Chi_Minh` nhưng chưa cần cron.
+  - Audit nâng cao, RBAC chi tiết theo thao tác sẽ làm sau; hiện tại tối thiểu.
+  - Không yêu cầu nhập/xuất Excel/CSV trong 12h đầu.
+  - Chạy cục bộ với Node/Bun có sẵn; không cấu hình CI phức tạp.
+  - Sentry/giám sát để sau; ưu tiên tính năng chạy được.
+  - Phân quyền: `admin | member`; admin toàn quyền, member bị giới hạn theo chợ.
+  - Dữ liệu địa giới VN có thể dùng JSON gọn/đủ cho chọn chợ (đơn giản hóa).
+
+- Definition of Done (DoD):
+  - Có thể đăng ký/đăng nhập và truy cập `/admin` theo vai trò.
+  - Tạo/sửa được chợ và sản phẩm trong Admin, dữ liệu lưu ở Convex.
+  - Nhập giá hợp lệ và sinh bản ghi `price_history` trước/sau.
+  - Trang `/tracuu` hiển thị đúng dữ liệu theo chợ/ngày (SSR) và phân trang cơ bản.
+  - Landing page hiển thị nội dung/data mô tả dự án.
+  - Không lỗi nghiêm trọng trên console, build dev chạy được.
+
+## 📋 Kanban board HTML
+
+<style>{`
+  .board { max-width: 1200px; margin: 16px auto; padding: 0 12px; }
+  .kanban { display: flex; gap: 12px; align-items: flex-start; }
+  .col { flex: 1; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; min-height: 300px; }
+  .col h3 { margin: 0 0 8px 0; font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
+  .wip { font-size: 12px; color: #6b7280; }
+  .card { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; margin: 8px 0; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
+  .card strong { display: block; margin-bottom: 6px; }
+  .hint { font-size: 12px; color: #6b7280; }
+  @media (max-width: 900px) {
+    .kanban { flex-direction: column; }
+  }
+`}</style>
+
+<div className="board">
+  <div className="kanban">
+    <div className="col">
+      <h3>Todo</h3>
+      <div className="card">
+        <strong>Thiết lập môi trường .env.local</strong>
+        <div className="hint">Đầu ra: cấu hình `NEXT_PUBLIC_CONVEX_URL`, biến Auth.</div>
+      </div>
+      <div className="card">
+        <strong>Tạo schema Convex cho danh mục</strong>
+        <div className="hint">Đầu ra: bảng `units, products, markets, profiles, market_members, prices`.</div>
+      </div>
+      <div className="card">
+        <strong>Seed đơn vị đo mặc định</strong>
+        <div className="hint">Đầu ra: record `kg, g, tạ, tấn, bó, túi, chai, lít, trái, cây, nải, chục`.</div>
+      </div>
+      <div className="card">
+        <strong>Triển khai guards truy cập</strong>
+        <div className="hint">Đầu ra: `requireAuth`, `requireRole('admin')`, `requireMarketAccess`.</div>
+      </div>
+      <div className="card">
+        <strong>Cấu hình Auth.js (Credentials)</strong>
+        <div className="hint">Đầu ra: đăng ký/đăng nhập hoạt động, session bảo vệ `/admin`.</div>
+      </div>
+      <div className="card">
+        <strong>Tạo layout và nav cho Admin</strong>
+        <div className="hint">Đầu ra: `/admin` có sidebar/topbar tối giản.</div>
+      </div>
+      <div className="card">
+        <strong>Xây danh sách + tạo/sửa Chợ</strong>
+        <div className="hint">Đầu ra: CRUD tối thiểu bảng `markets`.</div>
+      </div>
+      <div className="card">
+        <strong>Xây danh sách + tạo/sửa Sản phẩm</strong>
+        <div className="hint">Đầu ra: CRUD tối thiểu bảng `products`.</div>
+      </div>
+      <div className="card">
+        <strong>Tạo form nhập giá theo chợ/ngày</strong>
+        <div className="hint">Đầu ra: ghi `prices` với validate `>0`, không ngày tương lai.</div>
+      </div>
+      <div className="card">
+        <strong>Ghi lịch sử thay đổi giá</strong>
+        <div className="hint">Đầu ra: tạo `price_history` before/after khi insert/update.</div>
+      </div>
+      <div className="card">
+        <strong>Xây trang công khai /tracuu</strong>
+        <div className="hint">Đầu ra: bảng giá theo chợ/ngày (SSR), phân trang đơn giản.</div>
+      </div>
+      <div className="card">
+        <strong>Hoàn thiện landing với data_khuyennong</strong>
+        <div className="hint">Đầu ra: render mô tả/data tĩnh trên trang chủ.</div>
+      </div>
+    </div>
+
+    <div className="col">
+      <h3>Doing <span className="wip">(WIP ≤ 3)</span></h3>
+      {/* Giữ tối đa 3 thẻ ở đây */}
+      <div className="card">
+        <strong>Thiết lập môi trường .env.local</strong>
+        <div className="hint">Đầu ra: biến môi trường sẵn sàng cho dev.</div>
+      </div>
+      <div className="card">
+        <strong>Tạo schema Convex cho danh mục</strong>
+        <div className="hint">Đầu ra: schema và index cơ bản.</div>
+      </div>
+    </div>
+
+    <div className="col">
+      <h3>Done</h3>
+      {/* Ban đầu để trống */}
+    </div>
+  </div>
+</div>
