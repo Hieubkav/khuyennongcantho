@@ -1,19 +1,34 @@
-## Error Type
-Runtime TypeError
-
-## Error Message
-function is not iterable (cannot read property Symbol(Symbol.iterator))
-
-
-    at AdminProductsPage (src/app/(admin)/admin/products/page.tsx:18:27)
-
-## Code Frame
-  16 |   const products = useQuery(api.products.list, { limit: 100 });
-  17 |   const unitsData = useQuery(apiAny.units.list, { active: true, limit: 200 });
-> 18 |   const [deleteProduct] = useMutation(api.products.deleteProduct);
-     |                           ^
-  19 |   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
-  20 |
-  21 |   const units = unitsData?.units ?? [];
-
-Next.js version: 15.5.0 (Turbopack)
+[06:54:00.351] Running build in Washington, D.C., USA (East) – iad1
+[06:54:00.352] Build machine configuration: 2 cores, 8 GB
+[06:54:00.369] Cloning github.com/Hieubkav/khuyennongcantho (Branch: master, Commit: af17f09)
+[06:54:02.059] Cloning completed: 1.690s
+[06:54:02.214] Restored build cache from previous deployment (ESN9qUM4XRZkG8YYaN6spV6XW1oY)
+[06:54:02.761] Running "vercel build"
+[06:54:03.147] Vercel CLI 47.0.5
+[06:54:03.309] > Detected Turbo. Adjusting default settings...
+[06:54:03.642] Running "install" command: `bun install`...
+[06:54:03.683] bun install v1.2.21 (7c45ed97)
+[06:54:03.706] Resolving dependencies
+[06:54:04.414] Resolved, downloaded and extracted [54]
+[06:54:05.036] Saved lockfile
+[06:54:05.036] 
+[06:54:05.036] Checked 398 installs across 503 packages (no changes) [1376.00ms]
+[06:54:05.050] Detected Next.js version: 15.5.0
+[06:54:05.050] Running "bun run build"
+[06:54:05.055] $ next build
+[06:54:06.144]    ▲ Next.js 15.5.0
+[06:54:06.145] 
+[06:54:06.432] [MDX] updated map file in 12.126453999999967ms
+[06:54:06.510]    Creating an optimized production build ...
+[06:54:20.904]  ✓ Compiled successfully in 14.3s
+[06:54:20.917]    Linting and checking validity of types ...
+[06:54:28.457] Failed to compile.
+[06:54:28.457] 
+[06:54:28.458] src/app/(admin)/admin/markets/[slug]/edit/page.tsx
+[06:54:28.458] Type error: Type '{ params: { slug: string; }; }' does not satisfy the constraint 'PageProps'.
+[06:54:28.458]   Types of property 'params' are incompatible.
+[06:54:28.459]     Type '{ slug: string; }' is missing the following properties from type 'Promise<any>': then, catch, finally, [Symbol.toStringTag]
+[06:54:28.459] 
+[06:54:28.485] Next.js build worker exited with code: 1 and signal: null
+[06:54:28.524] error: script "build" exited with code 1
+[06:54:28.532] Error: Command "bun run build" exited with 1

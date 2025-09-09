@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@dohy/backend/convex/_generated/api';
 import { Button } from '@/components/ui/button';
@@ -10,13 +10,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { Switch } from '@/components/ui/switch';
 
-export default function EditMarketPage({ params }: { params: { slug: string } }) {
+export default function EditMarketPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params);
+  
   const [name, setName] = useState('');
   const [location, setLocation] = useState('');
   const [active, setActive] = useState(false);
   const [error, setError] = useState('');
 
-  const market = useQuery(api.markets.bySlug, { slug: params.slug });
+  const market = useQuery(api.markets.bySlug, { slug });
   const updateMarket = useMutation(api.markets.update);
   const router = useRouter();
 
