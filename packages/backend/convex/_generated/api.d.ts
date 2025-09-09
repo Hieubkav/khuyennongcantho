@@ -18,6 +18,7 @@ import type * as markets from "../markets.js";
 import type * as products from "../products.js";
 import type * as seeds from "../seeds.js";
 import type * as todos from "../todos.js";
+import type * as units from "../units.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -33,6 +34,7 @@ declare const fullApi: ApiFromModules<{
   products: typeof products;
   seeds: typeof seeds;
   todos: typeof todos;
+  units: typeof units;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

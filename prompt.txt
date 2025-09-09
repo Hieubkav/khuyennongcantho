@@ -1,0 +1,23 @@
+## Error Type
+Build Error
+
+## Error Message
+Module not found: Can't resolve 'next-auth'
+
+## Build Output
+./apps/web/src/auth.ts:1:1
+Module not found: Can't resolve 'next-auth'
+> 1 | import NextAuth from "next-auth";
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  2 | import Credentials from "next-auth/providers/credentials";
+  3 |
+  4 | export const { auth, signIn, signOut, handlers: { GET, POST } } = NextAuth({
+
+Import trace:
+  Server Component:
+    ./apps/web/src/auth.ts
+    ./apps/web/src/app/admin/layout.tsx
+
+https://nextjs.org/docs/messages/module-not-found
+
+Next.js version: 15.5.0 (Turbopack)
