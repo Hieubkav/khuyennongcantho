@@ -148,3 +148,22 @@ export const bySlug = query({
       .unique();
   },
 });
+
+// New delete mutation
+export const deleteMarket = mutation({
+  args: {
+    id: v.id('markets'),
+  },
+  handler: async (ctx, args) => {
+    // Check if market exists
+    const existingMarket = await ctx.db.get(args.id);
+    if (!existingMarket) {
+      throw new Error(`Market with id ${args.id} not found`);
+    }
+    
+    // Delete the market
+    await ctx.db.delete(args.id);
+    
+    return args.id;
+  },
+});

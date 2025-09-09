@@ -1,42 +1,88 @@
-[05:24:08.451] Running build in Washington, D.C., USA (East) – iad1
-[05:24:08.451] Build machine configuration: 2 cores, 8 GB
-[05:24:08.464] Cloning github.com/Hieubkav/khuyennongcantho (Branch: master, Commit: 34d1875)
-[05:24:09.819] Cloning completed: 1.353s
-[05:24:10.721] Restored build cache from previous deployment (3WFYs4o1W94v11zLaFVaFZNUuvuf)
-[05:24:11.378] Running "vercel build"
-[05:24:11.791] Vercel CLI 47.0.5
-[05:24:11.955] > Detected Turbo. Adjusting default settings...
-[05:24:12.278] Running "install" command: `bun install`...
-[05:24:12.327] bun install v1.2.21 (7c45ed97)
-[05:24:12.351] Resolving dependencies
-[05:24:13.835] Resolved, downloaded and extracted [50]
-[05:24:14.642] Saved lockfile
-[05:24:14.643] 
-[05:24:14.643] + next-auth@5.0.0-beta.29
-[05:24:14.643] 
-[05:24:14.643] 14 packages installed [2.34s]
-[05:24:14.941] Detected Next.js version: 15.5.0
-[05:24:14.943] Running "bun run build"
-[05:24:14.947] $ next build
-[05:24:16.155]    ▲ Next.js 15.5.0
-[05:24:16.155] 
-[05:24:16.444] [MDX] updated map file in 11.322670000000016ms
-[05:24:16.488]    Creating an optimized production build ...
-[05:24:30.731]  ✓ Compiled successfully in 14.1s
-[05:24:30.737]    Linting and checking validity of types ...
-[05:24:37.554] Failed to compile.
-[05:24:37.554] 
-[05:24:37.554] ./src/auth.ts:30:26
-[05:24:37.554] Type error: Property 'role' does not exist on type 'User | AdapterUser'.
-[05:24:37.555]   Property 'role' does not exist on type 'User'.
-[05:24:37.555] 
-[05:24:37.555] [0m [90m 28 |[39m   callbacks[33m:[39m {
-[05:24:37.555]  [90m 29 |[39m     jwt({ token[33m,[39m user }) {
-[05:24:37.555] [31m[1m>[22m[39m[90m 30 |[39m       token[33m.[39mrole [33m=[39m user[33m?[39m[33m.[39mrole [33m?[39m[33m?[39m token[33m.[39mrole [33m?[39m[33m?[39m [32m'member'[39m[33m;[39m
-[05:24:37.555]  [90m    |[39m                          [31m[1m^[22m[39m
-[05:24:37.555]  [90m 31 |[39m       [36mreturn[39m token[33m;[39m
-[05:24:37.555]  [90m 32 |[39m     }[33m,[39m
-[05:24:37.555]  [90m 33 |[39m     session({ session[33m,[39m token }) {[0m
-[05:24:37.583] Next.js build worker exited with code: 1 and signal: null
-[05:24:37.623] error: script "build" exited with code 1
-[05:24:37.631] Error: Command "bun run build" exited with 1
+Triển khai bước 9–10: Admin Prices + price_history (tối thiểu)
+
+Mục tiêu
+- Thêm chức năng nhập giá theo chợ/sản phẩm/ngày và lưu lịch sử thay đổi.
+- Đảm bảo ràng buộc: giá > 0, không cho ngày tương lai, duy nhất theo (marketId, productId, date).
+
+Bối cảnh hiện có
+- Convex schema đã có: `units, products, markets, profiles, market_members, prices` (chưa có `price_history`).
+- Danh mục: đã có `units.list`, `markets.list`, `products.list`.
+- Admin: đã có Auth + trang Markets/Products; cần thêm trang Prices.
+
+Backend (Convex)
+1) Cập nhật schema — thêm bảng `price_history`
+   - File: `packages/backend/convex/schema.ts`
+   - Thêm bảng:
+     - `price_history`: {
+         priceId: v.id('prices'),
+         marketId: v.id('markets'),
+         productId: v.id('products'),
+         date: v.string(),
+         beforePrice: v.optional(v.number()),
+         afterPrice: v.number(),
+         changedBy: v.optional(v.id('profiles')),
+         changedAt: v.number(),
+         notes: v.optional(v.string()),
+       }
+     - Index gợi ý:
+       - `.index('by_price', ['priceId'])`
+       - `.index('by_market_product_date', ['marketId','productId','date'])`
+
+2) Tạo module `packages/backend/convex/prices.ts`
+   - Export các hàm:
+     - `list`: query
+       - args: { marketId?: Id<'markets'>; productId?: Id<'products'>; date?: string; limit?: number; cursor?: string }
+       - Lọc theo tham số nếu có, dùng các index đã khai báo (`by_market_date`/`by_product_date`/`by_market_product_date`).
+       - Trả về `{ prices, cursor }` với phân trang đơn giản (order asc, take limit+1, cắt 1 để sinh cursor).
+     - `upsert`: mutation (điểm chính)
+       - args: { marketId: Id<'markets'>; productId: Id<'products'>; unitId: Id<'units'>; date: string (YYYY-MM-DD); price: number; notes?: string }
+       - Validate:
+         - `price > 0`.
+         - `date` không lớn hơn ngày hiện tại.
+         - `marketId`, `productId`, `unitId` tồn tại; (nếu `unitId !== product.defaultUnitId` thì vẫn chấp nhận, có thể TODO cảnh báo sau).
+       - Logic:
+         - Tìm bản ghi theo `by_market_product_date`.
+         - Nếu chưa có: `insert` vào `prices` { unitId, price, notes?, createdAt=Date.now(), createdBy? }.
+         - Nếu đã có: `patch` bản ghi cũ { unitId, price, notes?, updatedAt=Date.now() }.
+         - Ghi `price_history` mỗi lần insert/update: { priceId, marketId, productId, date, beforePrice?, afterPrice, changedBy?, changedAt=Date.now(), notes? }.
+
+   - Lưu ý style/kiểu:
+     - Giữ cấu trúc và cách viết tương tự `markets.ts`, `products.ts`.
+     - Dùng `v` từ `convex/values` và index đã có trong `prices`.
+
+3) (Tuỳ chọn) Thêm query lịch sử: `historyByMarketProductDate` để xem các lần thay đổi mới nhất cho một (market, product, date).
+
+Frontend (Next.js — Admin)
+1) Trang `/admin/prices`
+   - File: `apps/web/src/app/admin/prices/page.tsx` (client component)
+   - Lấy danh mục:
+     - `useQuery(api.markets.list, { limit: 200 })`
+     - `useQuery(api.products.list, { limit: 200 })`
+     - `useQuery((api as any).units.list, { active: true, limit: 200 })`
+   - Form nhập giá:
+     - Trường: market (select), product (select), unit (select), date (input type=date), price (number), notes (optional)
+     - Validate FE: `price > 0`, `date` không tương lai, các select không rỗng.
+     - Submit: gọi `useMutation(api.prices.upsert)` với payload đúng kiểu.
+     - Thành công: reset form, thông báo; thất bại: hiển thị lỗi.
+   - Danh sách giá gần đây:
+     - `useQuery(api.prices.list, { limit: 50 })` → hiển thị bảng (market, product, date, unit, price).
+     - Map tên đơn vị từ `_id -> name` như ở trang Products.
+
+2) TypeScript/UI
+   - Import Convex API từ `@dohy/backend/convex/_generated/api`.
+   - Khi `.map(...)` mảng dữ liệu từ Convex, thêm kiểu `(x: any)` để tránh lỗi strict/noImplicitAny khi build CI.
+   - Tận dụng `@/components/ui/{button,input,label,card}` để giữ UI tối giản.
+
+Tiêu chí nghiệm thu
+- Schema có bảng `price_history`; Convex build không lỗi.
+- `prices.upsert` từ chối `price <= 0` hoặc `date` tương lai; đảm bảo uniqueness theo (marketId, productId, date).
+- Ghi `price_history` với before/after và thời điểm thay đổi.
+- `/admin/prices` nhập được giá và hiển thị danh sách; không lỗi console.
+
+Gợi ý xác minh nhanh (CLI)
+- Tạo giá:
+  - `npx convex run prices:upsert '{"marketId":"<id markets:...>","productId":"<id products:...>","unitId":"<id units:...>","date":"2025-09-10","price":15000}'`
+- Xem dữ liệu:
+  - `npx convex data prices`
+  - `npx convex data price_history`
+

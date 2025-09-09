@@ -159,3 +159,22 @@ export const bySlug = query({
       .unique();
   },
 });
+
+// New delete mutation
+export const deleteProduct = mutation({
+  args: {
+    id: v.id('products'),
+  },
+  handler: async (ctx, args) => {
+    // Check if product exists
+    const existingProduct = await ctx.db.get(args.id);
+    if (!existingProduct) {
+      throw new Error(`Product with id ${args.id} not found`);
+    }
+    
+    // Delete the product
+    await ctx.db.delete(args.id);
+    
+    return args.id;
+  },
+});

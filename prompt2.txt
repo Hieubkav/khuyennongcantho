@@ -1,0 +1,19 @@
+## Error Type
+Runtime TypeError
+
+## Error Message
+function is not iterable (cannot read property Symbol(Symbol.iterator))
+
+
+    at AdminProductsPage (src/app/(admin)/admin/products/page.tsx:18:27)
+
+## Code Frame
+  16 |   const products = useQuery(api.products.list, { limit: 100 });
+  17 |   const unitsData = useQuery(apiAny.units.list, { active: true, limit: 200 });
+> 18 |   const [deleteProduct] = useMutation(api.products.deleteProduct);
+     |                           ^
+  19 |   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  20 |
+  21 |   const units = unitsData?.units ?? [];
+
+Next.js version: 15.5.0 (Turbopack)
