@@ -1,14 +1,177 @@
 ---
-title: Hello World
-description: Your first document
+title: Hệ Thống Quản Lý Giá Nông Sản Theo Chợ
+description: Đặc tả dự án, kiến trúc, chức năng, quy tắc và lộ trình triển khai
 ---
 
-Welcome to the docs! You can start writing documents in `/content/docs`.
+Hệ thống web quản lý danh mục nông sản theo chợ, nhập giá hằng ngày, lưu lịch sử, báo cáo và trang công khai tra cứu. Tài liệu này là điểm bắt đầu cho toàn bộ đội dự án.
 
-## What is Next?
+<Callout>
+	Giai đoạn đầu triển khai tại TP. Cần Thơ (quy mô 100–1000 chợ). Lịch nhắc nhập liệu 16:30 (Asia/Ho_Chi_Minh) và gửi email qua Resend.
+</Callout>
 
 <Cards>
-  <Card title="Learn more about Next.js" href="https://nextjs.org/docs" />
-  <Card title="Learn more about Fumadocs" href="https://fumadocs.vercel.app" />
+	<Card title="Mục tiêu & Phạm vi" href="#muc-tieu-pham-vi" />
+	<Card title="Kiến trúc" href="#kien-truc" />
+	<Card title="Chức năng chính" href="#chuc-nang-chinh" />
+	<Card title="RBAC & Bảo mật" href="#rbac-va-bao-mat" />
+	<Card title="Mô hình dữ liệu" href="#mo-hinh-du-lieu" />
+	<Card title="Nhập/Xuất & Cron" href="#nhap-xuat-du-lieu-va-cron" />
 </Cards>
 
+## Mục tiêu & Phạm vi
+
+- Minh bạch và dễ vận hành: quản lý giá theo (chợ, sản phẩm, ngày) với lịch sử đầy đủ.
+- Phân quyền rõ ràng: Admin/Thành viên; thành viên chỉ nhập trong chợ được gán.
+- Công khai tra cứu: người dân xem bảng giá theo chợ và ngày, tối ưu SEO.
+- Khả năng mở rộng: bắt đầu ở Cần Thơ, sẵn sàng mở rộng toàn quốc.
+
+## Đối tượng sử dụng
+
+- Admin: quản trị người dùng/role, CRUD chợ/sản phẩm/đơn vị, nhập/xuất, báo cáo.
+- Thành viên: nhập/chỉnh sửa giá theo chợ được phân công, xem báo cáo phạm vi.
+- Công chúng: tra cứu bảng giá (read-only, không đăng nhập).
+
+## Kiến trúc
+
+- Frontend: Next.js 15 (App Router), React 19, Tailwind CSS, shadcn/ui, TanStack Table, react-hook-form + zod.
+- Backend: Convex (database, server functions, RBAC, cron, audit).
+- Xác thực: Auth.js (email/mật khẩu), phiên JWT, xác minh email, đặt lại mật khẩu qua email.
+- Email: Resend (reset password, nhắc nhở nhập liệu).
+- Triển khai: Vercel (FE) + Convex Cloud (BE); cấu hình `NEXT_PUBLIC_CONVEX_URL`.
+- Dữ liệu địa giới: JSON tỉnh/thành–quận/huyện–phường/xã Việt Nam (mới), chọn bằng picker 3 cấp; có trường “đặc điểm chợ”.
+
+## Chức năng chính
+
+### 1) Tài khoản & phân quyền
+
+- Đăng ký/đăng nhập (email/mật khẩu), xác minh email, đặt lại mật khẩu qua email.
+- Vai trò: `admin | member`; kích hoạt/vô hiệu; gán thành viên ↔ chợ.
+- Bảo vệ mọi API bằng guards: xác thực, active, role, quyền theo chợ (ví dụ: `requireRole('admin')`, `requireMarketAccess(marketId)`).
+
+### 2) Quản lý chợ
+
+- Tạo/sửa/kích hoạt; trường: mã, tên, địa chỉ, tỉnh/thành–quận/huyện–phường/xã, đặc điểm.
+- Chọn địa giới từ JSON VN; có tìm kiếm theo tên/aliases.
+
+### 3) Quản lý sản phẩm & đơn vị tính
+
+- Sản phẩm: tên, đơn vị mặc định, trạng thái active, thứ tự hiển thị.
+- Đơn vị tính: danh sách mặc định (kg, g, tấn, bó, túi, chai, lít, trái, cây, nải, chục), cho phép thêm mới và bật/tắt.
+
+### 4) Giá nông sản hằng ngày
+
+- Nhập từng dòng theo ngày/chợ; kiểm soát: không ngày tương lai, giá > 0.
+- Duy nhất theo (chợ, sản phẩm, ngày); cập nhật sẽ ghi lịch sử before/after.
+- Cảnh báo lệch bất thường (so với hôm trước) và yêu cầu ghi chú khi vượt ngưỡng.
+
+### 5) Lịch sử & nhật ký hệ thống
+
+- Lưu mọi thay đổi giá: ai, khi nào, trước/sau, hành động (insert/update/delete).
+- Audit log cho CRUD danh mục, phân quyền, nhập/xuất dữ liệu.
+- Trang tra cứu theo bộ lọc: chợ, sản phẩm, người dùng, ngày.
+
+### 6) Báo cáo & thống kê
+
+- Coverage theo ngày/chợ: tỷ lệ sản phẩm đã nhập giá.
+- Xu hướng giá theo sản phẩm/chợ; top sản phẩm cập nhật; chợ hoạt động tích cực.
+- Xuất CSV/Excel từ màn báo cáo.
+
+### 7) Nhập/Xuất dữ liệu
+
+- Xuất Excel/CSV: cột chuẩn (Date, MarketCode, MarketName, Product, Unit, PriceVND, Editor, Notes).
+- Nhập Excel/CSV: parse → map cột → validate (zod) → preview → xác nhận → ghi hàng loạt transactional + history + audit.
+- File mẫu sinh từ danh mục hiện tại (sản phẩm active + đơn vị mặc định), có sheet hướng dẫn.
+
+### 8) Trang công khai
+
+- Tra cứu bảng giá theo chợ/ngày; URL chia sẻ; SEO (metadata, schema.org `Dataset`).
+- Cache nhẹ (revalidate 60–300s) tuỳ lưu lượng.
+
+### 9) Cron & email
+
+- 16:30: email nhắc chợ/thành viên chưa nhập đủ cho ngày hiện tại (timezone `Asia/Ho_Chi_Minh`).
+- 23:55: snapshot dữ liệu ngày (coverage, totals, top hoạt động) phục vụ báo cáo.
+- Resend làm nhà cung cấp email; template tuỳ biến, liên kết an toàn.
+
+## RBAC & Bảo mật
+
+- Vai trò: `admin` (toàn quyền), `member` (giới hạn theo chợ gán).
+- Guards: `requireAuth`, `requireActiveProfile`, `requireRole('admin')`, `requireMarketAccess(marketId)`.
+- Email verification bắt buộc trước khi nhập liệu; reset password token một lần (TTL 30 phút).
+- Rate-limit: đăng nhập, reset, bulkUpsert theo IP + user.
+- Secrets: không lưu mật khẩu thô; sử dụng hash an toàn; không commit khóa bí mật.
+- Audit: log mọi thay đổi quan trọng; khả năng truy vấn theo khoảng thời gian/thực thể/người dùng.
+
+## Mô hình dữ liệu
+
+<details>
+	<summary><strong>Bảng &amp; chỉ mục (Convex)</strong></summary>
+
+- markets: code, name, provinceCode, districtCode, wardCode, address, attributes(`JSON`), active, createdAt, updatedAt; index: `by_code`, `by_active`, `by_admin_area`.
+- products: name, unitId, active, sortOrder, createdAt, updatedAt; index: `by_active`, `by_name`.
+- units: code, name, aliases[], active; seed mặc định: kg, g, tấn, bó, túi, chai, lít, trái, cây, nải, chục.
+- profiles: userId, email, name, role: `admin | member`, active, emailVerifiedAt, createdAt; index: `by_userId`, `by_email`.
+- market_members: userId, marketId, createdAt; index: `by_user`, `by_market`.
+- prices: marketId, productId, date(YYYY-MM-DD), priceVnd(int), notes?, createdBy, createdAt, updatedAt; index: `by_market_date`, `by_market_product_date` (unique logic).
+- price_history: marketId, productId, date, before(`JSON`), after(`JSON`), actorId, action: `insert | update | delete`, at.
+- audit_logs: actorId, action, entity, entityId, meta(`JSON`), at.
+- password_resets: email, tokenHash, expiresAt, usedAt?; index: `by_email` (TTL).
+- snapshots: date, coverage(%), perMarket[], totals; index: `by_date`.
+- vn_admin_divisions: version, provinces[] `{\u00A0code, name, type, aliases[], districts[], wards[]\u00A0}` (read-only).
+
+</details>
+
+<Callout>
+	Quy ước ngày: lưu dạng chuỗi `YYYY-MM-DD` theo timezone `Asia/Ho_Chi_Minh`. Giá: số nguyên VND (tránh dùng số thực).
+</Callout>
+
+## Nhập/Xuất dữ liệu và Cron
+
+<Tabs>
+	<Tab value="nhap" label="Nhập Excel/CSV">
+		<Steps>
+			<Step title="Tải file và ánh xạ cột">Hỗ trợ `Date`, `MarketCode/MarketName`, `Product`, `Unit`, `PriceVND`, `Notes`.</Step>
+			<Step title="Kiểm tra & xác thực">Zod validate; kiểm tra tồn tại chợ/sản phẩm, đơn vị; ngày hợp lệ; giá &gt; 0; trùng (chợ+sp+ngày) sẽ xử lý cập nhật.</Step>
+			<Step title="Xem trước & xác nhận">Hiển thị lỗi/cảnh báo; người dùng xác nhận trước khi ghi.</Step>
+			<Step title="Ghi hàng loạt (transactional)">Lưu bản ghi, tạo history + audit; trả về thống kê thành công/thất bại.</Step>
+		</Steps>
+	</Tab>
+	<Tab value="xuat" label="Xuất Excel/CSV">
+		- Lọc theo ngày/chợ; lựa chọn cột chuẩn; kèm metadata (thời gian tạo, người tạo).
+	</Tab>
+	<Tab value="cron" label="Cron & Email">
+		- 16:30: nhắc nhở nhập liệu qua email (Resend) cho thị trường còn thiếu.
+		- 23:55: snapshot coverage/ngày; phục vụ báo cáo và theo dõi.
+	</Tab>
+</Tabs>
+
+## SEO, Hiệu năng & Chất lượng
+
+- SEO: `generateMetadata` động theo ngày/chợ; schema.org `Dataset`; Open Graph; URL chia sẻ.
+- Hiệu năng: index phù hợp; phân trang; virtualization bảng lớn; caching nhẹ trang công khai.
+- Kiểm thử: Vitest (validators, guards, rules) và Playwright (đăng nhập, nhập giá, nhập/xuất).
+- Chất lượng: oxlint (`bun check`), TS strict (`bun check-types`); giám sát Sentry.
+
+## Cấu hình môi trường
+
+- Frontend `.env.local`: `NEXT_PUBLIC_CONVEX_URL`, `NEXTAUTH_URL`, `AUTH_SECRET`, `RESEND_API_KEY`, `SENTRY_DSN?`, `TZ=Asia/Ho_Chi_Minh`.
+- Backend (Convex): thiết lập URL/keys qua `bun dev:setup`; secrets trong môi trường Convex.
+- Dữ liệu địa giới: `apps/web/src/data/vn-admin.json` (có `version`, `effectiveFrom`, `aliases`).
+
+## Lộ trình triển khai
+
+<Steps>
+	<Step title="Sprint 1">Schema + RBAC + Auth + CRUD chợ/sản phẩm/đơn vị + JSON địa giới + gán thành viên.</Step>
+	<Step title="Sprint 2">Nhập giá đơn lẻ + lịch sử + audit + trang công khai + SEO cơ bản.</Step>
+	<Step title="Sprint 3">Nhập/xuất Excel + báo cáo coverage/trend + cron (16:30, 23:55) + email Resend.</Step>
+	<Step title="Sprint 4">Tối ưu hiệu năng, giám sát Sentry, polish UI, mở rộng báo cáo.</Step>
+</Steps>
+
+## Liên kết nhanh
+
+<Cards>
+	<Card title="Tài liệu Fumadocs" href="https://fumadocs.vercel.app" />
+	<Card title="Next.js App Router" href="https://nextjs.org/docs/app" />
+	<Card title="Convex Docs" href="https://docs.convex.dev" />
+	<Card title="Resend" href="https://resend.com/docs" />
+</Cards>

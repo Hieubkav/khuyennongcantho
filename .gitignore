@@ -2,3 +2,5 @@ node_modules
 .turbo
 .alchemy
 .env
+AGENTS.md
+.vscode
