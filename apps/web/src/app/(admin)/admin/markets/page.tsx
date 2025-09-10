@@ -10,6 +10,23 @@ import Link from 'next/link';
 import { PlusCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
+const apiAny = api as any;
+
+function MarketMetaCells({ marketId }: { marketId: any }) {
+  const managers = useQuery(apiAny.marketMembers.listByMarket, { marketId, active: true });
+  const manager: any = managers && (managers as any[]).length > 0 ? (managers as any[])[0] : null;
+  const profile = useQuery(api.profiles.getById, manager ? ({ id: manager.profileId } as any) : ('skip' as any));
+  const items = useQuery(apiAny.marketProducts.listByMarket, { marketId, active: true }) as any[] | undefined;
+  const count = items ? items.length : 0;
+  const name = profile ? (profile.name ?? profile.email) : '—';
+  return (
+    <>
+      <td className="px-6 py-4 whitespace-nowrap">{name}</td>
+      <td className="px-6 py-4 whitespace-nowrap">{count}</td>
+    </>
+  );
+}
+
 export default function AdminMarketsPage() {
   const markets = useQuery(api.markets.list, { limit: 100 });
   const deleteMarket = useMutation(api.markets.deleteMarket);
@@ -19,7 +36,6 @@ export default function AdminMarketsPage() {
     try {
       await deleteMarket({ id });
       toast.success('Xóa chợ thành công');
-      // Remove from selected markets if it was selected
       const newSelected = new Set(selectedMarkets);
       newSelected.delete(id);
       setSelectedMarkets(newSelected);
@@ -32,7 +48,7 @@ export default function AdminMarketsPage() {
     try {
       const promises = Array.from(selectedMarkets).map((id: any) => deleteMarket({ id } as any));
       await Promise.all(promises);
-      toast.success(`Xóa ${selectedMarkets.size} chợ thành công`);
+      toast.success(`Đã xóa ${selectedMarkets.size} chợ`);
       setSelectedMarkets(new Set());
     } catch (error: any) {
       toast.error('Xóa chợ thất bại: ' + error.message);
@@ -41,7 +57,6 @@ export default function AdminMarketsPage() {
 
   const toggleSelectAll = () => {
     if (!markets) return;
-    
     if (selectedMarkets.size === markets.markets.length) {
       setSelectedMarkets(new Set());
     } else {
@@ -51,11 +66,8 @@ export default function AdminMarketsPage() {
 
   const toggleSelect = (id: any) => {
     const newSelected = new Set(selectedMarkets);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
+    if (newSelected.has(id)) newSelected.delete(id);
+    else newSelected.add(id);
     setSelectedMarkets(newSelected);
   };
 
@@ -100,6 +112,8 @@ export default function AdminMarketsPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Địa điểm</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quản lý bởi</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số sản phẩm</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
                   </tr>
@@ -116,6 +130,7 @@ export default function AdminMarketsPage() {
                       <td className="px-6 py-4 whitespace-nowrap">{market.name}</td>
                       <td className="px-6 py-4 whitespace-nowrap">{market.slug}</td>
                       <td className="px-6 py-4 whitespace-nowrap">{market.location || '-'}</td>
+                      <MarketMetaCells marketId={market._id} />
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${market.active ? 'bg-gray-100 text-gray-800' : 'bg-gray-100 text-gray-500'}`}>
                           {market.active ? 'Hoạt động' : 'Không hoạt động'}
@@ -140,3 +155,4 @@ export default function AdminMarketsPage() {
     </div>
   );
 }
+

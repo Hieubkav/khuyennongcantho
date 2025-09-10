@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useSession } from 'next-auth/react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@dohy/backend/convex/_generated/api';
 import { Button } from '@/components/ui/button';
@@ -13,6 +14,8 @@ import { toast } from 'sonner';
 const apiAny = api as any;
 
 export default function AdminPricesPage() {
+  const { data: session } = useSession();
+  const profileId = (session?.user as any)?.id as string | undefined;
   // Form state
   const [marketId, setMarketId] = useState('');
   const [productId, setProductId] = useState('');
@@ -20,6 +23,7 @@ export default function AdminPricesPage() {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]); // Default to today
   const [price, setPrice] = useState('');
   const [notes, setNotes] = useState('');
+  const [noteType, setNoteType] = useState('');
   const [error, setError] = useState('');
 
   // Data fetching
@@ -100,6 +104,8 @@ export default function AdminPricesPage() {
         date,
         price: priceNum,
         notes: notes || undefined,
+        noteType: (noteType as any) || undefined,
+        createdBy: (profileId as any) || undefined,
       });
       
       toast.success('Lưu giá thành công');

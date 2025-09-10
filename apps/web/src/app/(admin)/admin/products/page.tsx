@@ -12,6 +12,12 @@ import { toast } from 'sonner';
 
 const apiAny = api as any;
 
+function ProductMarketCountCell({ productId }: { productId: any }) {
+  const links = useQuery(apiAny.marketProducts.listByProduct, { productId, active: true } as any) as any[] | undefined;
+  const count = links ? links.length : 0;
+  return <td className="px-6 py-4 whitespace-nowrap">{count}</td>;
+}
+
 export default function AdminProductsPage() {
   const products = useQuery(api.products.list, { limit: 100 });
   const unitsData = useQuery(apiAny.units.list, { active: true, limit: 200 });
@@ -21,9 +27,7 @@ export default function AdminProductsPage() {
   const units = unitsData?.units ?? [];
   const unitNameById = useMemo(() => {
     const m = new Map<string, string>();
-    for (const u of units) {
-      m.set(u._id as unknown as string, u.name as string);
-    }
+    for (const u of units) m.set(u._id as unknown as string, u.name as string);
     return m;
   }, [units]);
 
@@ -31,7 +35,6 @@ export default function AdminProductsPage() {
     try {
       await deleteProduct({ id });
       toast.success('Xóa sản phẩm thành công');
-      // Remove from selected products if it was selected
       const newSelected = new Set(selectedProducts);
       newSelected.delete(id);
       setSelectedProducts(newSelected);
@@ -44,7 +47,7 @@ export default function AdminProductsPage() {
     try {
       const promises = Array.from(selectedProducts).map((id: any) => deleteProduct({ id } as any));
       await Promise.all(promises);
-      toast.success(`Xóa ${selectedProducts.size} sản phẩm thành công`);
+      toast.success(`Đã xóa ${selectedProducts.size} sản phẩm`);
       setSelectedProducts(new Set());
     } catch (error: any) {
       toast.error('Xóa sản phẩm thất bại: ' + error.message);
@@ -53,27 +56,18 @@ export default function AdminProductsPage() {
 
   const toggleSelectAll = () => {
     if (!products) return;
-    
-    if (selectedProducts.size === products.products.length) {
-      setSelectedProducts(new Set());
-    } else {
-      setSelectedProducts(new Set(products.products.map((p: any) => p._id)));
-    }
+    if (selectedProducts.size === products.products.length) setSelectedProducts(new Set());
+    else setSelectedProducts(new Set(products.products.map((p: any) => p._id)));
   };
 
   const toggleSelect = (id: any) => {
-    const newSelected = new Set(selectedProducts);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedProducts(newSelected);
+    const ns = new Set(selectedProducts);
+    if (ns.has(id)) ns.delete(id);
+    else ns.add(id);
+    setSelectedProducts(ns);
   };
 
-  if (!products || !unitsData) {
-    return <div>Đang tải...</div>;
-  }
+  if (!products || !unitsData) return <div>Đang tải...</div>;
 
   return (
     <div className="space-y-6">
@@ -83,14 +77,12 @@ export default function AdminProductsPage() {
           <div className="flex space-x-2">
             {selectedProducts.size > 0 && (
               <Button variant="destructive" onClick={handleBulkDelete}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Xóa ({selectedProducts.size})
+                <Trash2 className="mr-2 h-4 w-4" /> Xóa ({selectedProducts.size})
               </Button>
             )}
             <Button asChild>
               <Link href="/admin/products/create">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Thêm sản phẩm
+                <PlusCircle className="mr-2 h-4 w-4" /> Thêm sản phẩm
               </Link>
             </Button>
           </div>
@@ -112,6 +104,7 @@ export default function AdminProductsPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Slug</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Đơn vị mặc định</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số chợ</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
                   </tr>
@@ -130,6 +123,7 @@ export default function AdminProductsPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         {unitNameById.get(product.defaultUnitId as unknown as string) || String(product.defaultUnitId)}
                       </td>
+                      <ProductMarketCountCell productId={product._id} />
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${product.active ? 'bg-gray-100 text-gray-800' : 'bg-gray-100 text-gray-500'}`}>
                           {product.active ? 'Hoạt động' : 'Không hoạt động'}
@@ -154,3 +148,4 @@ export default function AdminProductsPage() {
     </div>
   );
 }
+

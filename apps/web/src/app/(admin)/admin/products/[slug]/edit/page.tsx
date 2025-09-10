@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useEffect, useState, use } from 'react';
 import { useQuery, useMutation } from 'convex/react';
@@ -14,9 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 const apiAny = api as any;
 
 export default function EditProductPage({ params }: { params: Promise<{ slug: string }> }) {
-  // Unwrap params using use()
   const { slug } = use(params);
-  
+
   const [name, setName] = useState('');
   const [defaultUnitId, setDefaultUnitId] = useState('');
   const [active, setActive] = useState(false);
@@ -72,26 +71,21 @@ export default function EditProductPage({ params }: { params: Promise<{ slug: st
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="name">Tên sản phẩm</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
+            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
           <div>
             <Label htmlFor="defaultUnitId">Đơn vị mặc định</Label>
             <Select onValueChange={setDefaultUnitId} value={defaultUnitId} required>
-                <SelectTrigger>
-                    <SelectValue placeholder="Chọn một đơn vị" />
-                </SelectTrigger>
-                <SelectContent>
-                    {units.map((unit: any) => (
-                        <SelectItem key={String(unit._id)} value={String(unit._id)}>
-                            {unit.name}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
+              <SelectTrigger>
+                <SelectValue placeholder="Chọn một đơn vị" />
+              </SelectTrigger>
+              <SelectContent>
+                {units.map((unit: any) => (
+                  <SelectItem key={String(unit._id)} value={String(unit._id)}>
+                    {unit.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
           <div className="flex items-center space-x-2">

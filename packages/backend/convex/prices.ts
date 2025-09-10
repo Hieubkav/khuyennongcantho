@@ -94,7 +94,9 @@ export const upsert = mutation({
     unitId: v.id('units'),
     date: v.string(),
     price: v.number(),
+    noteType: v.optional(v.union(v.literal('up'), v.literal('down'), v.literal('other'))),
     notes: v.optional(v.string()),
+    createdBy: v.optional(v.id('profiles')),
   },
   handler: async (ctx, args) => {
     // Validate price > 0
@@ -134,14 +136,16 @@ export const upsert = mutation({
     if (existingPrice) {
       // Update existing record
       const beforePrice = existingPrice.price;
-      
+
       await ctx.db.patch(existingPrice._id, {
         unitId: args.unitId,
         price: args.price,
+        noteType: args.noteType,
         notes: args.notes,
         updatedAt: timestamp,
+        ...(args.createdBy ? { createdBy: args.createdBy } : {}),
       });
-      
+
       // Record history
       await ctx.db.insert('price_history', {
         priceId: existingPrice._id,
@@ -150,10 +154,12 @@ export const upsert = mutation({
         date: args.date,
         beforePrice,
         afterPrice: args.price,
+        changedBy: args.createdBy,
         changedAt: timestamp,
+        noteType: args.noteType,
         notes: args.notes,
       });
-      
+
       return existingPrice._id;
     } else {
       // Insert new record
@@ -163,10 +169,12 @@ export const upsert = mutation({
         unitId: args.unitId,
         date: args.date,
         price: args.price,
+        noteType: args.noteType,
         notes: args.notes,
+        createdBy: args.createdBy,
         createdAt: timestamp,
       });
-      
+
       // Record history
       await ctx.db.insert('price_history', {
         priceId: newPriceId,
@@ -175,10 +183,12 @@ export const upsert = mutation({
         date: args.date,
         beforePrice: undefined,
         afterPrice: args.price,
+        changedBy: args.createdBy,
         changedAt: timestamp,
+        noteType: args.noteType,
         notes: args.notes,
       });
-      
+
       return newPriceId;
     }
   },

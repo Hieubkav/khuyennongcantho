@@ -16,7 +16,9 @@ import type {
 import type * as auth from "../auth.js";
 import type * as healthCheck from "../healthCheck.js";
 import type * as marketMembers from "../marketMembers.js";
+import type * as marketProducts from "../marketProducts.js";
 import type * as markets from "../markets.js";
+import type * as priceRounds from "../priceRounds.js";
 import type * as prices from "../prices.js";
 import type * as products from "../products.js";
 import type * as profiles from "../profiles.js";
@@ -36,7 +38,9 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   healthCheck: typeof healthCheck;
   marketMembers: typeof marketMembers;
+  marketProducts: typeof marketProducts;
   markets: typeof markets;
+  priceRounds: typeof priceRounds;
   prices: typeof prices;
   products: typeof products;
   profiles: typeof profiles;

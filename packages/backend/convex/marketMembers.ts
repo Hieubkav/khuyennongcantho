@@ -19,6 +19,24 @@ export const listByMarket = query({
   },
 });
 
+// Batch query: list active memberships for many profiles
+export const listActiveByProfiles = query({
+  args: { profileIds: v.array(v.id('profiles')) },
+  handler: async (ctx, args) => {
+    const results: any[] = [];
+    for (const profileId of args.profileIds) {
+      const items = await ctx.db
+        .query('market_members')
+        .withIndex('by_profile', (q: any) => q.eq('profileId', profileId))
+        .collect();
+      for (const it of items) {
+        if (it.active) results.push(it);
+      }
+    }
+    return results;
+  },
+});
+
 export const hasAccess = query({
   args: { profileId: v.id('profiles'), marketId: v.id('markets') },
   handler: async (ctx, args) => {
@@ -43,6 +61,16 @@ export const assign = mutation({
       .query('market_members')
       .withIndex('by_market_profile', (q) => q.eq('marketId', args.marketId).eq('profileId', args.profileId))
       .unique();
+    // Enforce 1-1: only one active manager per market
+    const others = await ctx.db
+      .query('market_members')
+      .withIndex('by_market', (q) => q.eq('marketId', args.marketId))
+      .collect();
+    for (const o of others) {
+      if (o.active && String((o.profileId as any).id ?? o.profileId) !== String((args.profileId as any).id ?? args.profileId)) {
+        await ctx.db.patch(o._id, { active: false });
+      }
+    }
     if (existed) {
       await ctx.db.patch(existed._id, { active: true });
       return existed._id;
@@ -69,4 +97,3 @@ export const unassign = mutation({
     return existed._id;
   },
 });
-

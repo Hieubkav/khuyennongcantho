@@ -44,12 +44,28 @@ export default defineSchema({
 		active: v.boolean(),
 		createdAt: v.number(),
 	}).index("by_market", ["marketId"]).index("by_profile", ["profileId"]).index("by_market_profile", ["marketId", "profileId"]),
+	market_products: defineTable({
+		marketId: v.id("markets"),
+		productId: v.id("products"),
+		unitId: v.id("units"),
+		active: v.boolean(),
+		createdAt: v.number(),
+	}).index("by_market", ["marketId"]).index("by_product", ["productId"]).index("by_market_product", ["marketId", "productId"]),
+	price_rounds: defineTable({
+		marketId: v.id("markets"),
+		forDate: v.string(), // YYYY-MM-DD theo giờ VN
+		items: v.array(v.object({ productId: v.id("products"), unitId: v.id("units") })),
+		status: v.union(v.literal("open"), v.literal("closed")),
+		createdBy: v.id("profiles"),
+		createdAt: v.number(),
+	}).index("by_market_date", ["marketId", "forDate"]).index("by_market_status", ["marketId", "status"]),
 	prices: defineTable({
 		marketId: v.id("markets"),
 		productId: v.id("products"),
 		unitId: v.id("units"),
 		date: v.string(),
 		price: v.number(),
+		noteType: v.optional(v.union(v.literal("up"), v.literal("down"), v.literal("other"))),
 		notes: v.optional(v.string()),
 		createdBy: v.optional(v.id("profiles")),
 		createdAt: v.number(),
@@ -64,6 +80,7 @@ export default defineSchema({
 		afterPrice: v.number(),
 		changedBy: v.optional(v.id("profiles")),
 		changedAt: v.number(),
+		noteType: v.optional(v.union(v.literal("up"), v.literal("down"), v.literal("other"))),
 		notes: v.optional(v.string()),
 	}).index("by_price", ["priceId"]).index("by_market_product_date", ["marketId", "productId", "date"]),
 });
