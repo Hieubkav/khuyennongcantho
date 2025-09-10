@@ -8,15 +8,16 @@ import { cn } from "@/lib/utils";
 import { LayoutDashboard, Store, Boxes, Tags, Users, Settings, ChevronsLeftRight } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useSession } from "next-auth/react";
+import type { Route } from "next";
 
 type Role = "admin" | "member";
-const NAV_ITEMS: { href: string; label: string; icon: any; roles: Role[] }[] = [
-  { href: "/admin", label: "Bảng điều khiển", icon: LayoutDashboard, roles: ["admin", "member"] },
-  { href: "/admin/markets", label: "Quản lý chợ", icon: Store, roles: ["admin"] },
-  { href: "/admin/products", label: "Sản phẩm", icon: Boxes, roles: ["admin"] },
-  { href: "/admin/prices", label: "Giá cả", icon: Tags, roles: ["admin", "member"] },
-  { href: "/admin/members", label: "Thành viên", icon: Users, roles: ["admin"] },
-  { href: "/admin/settings", label: "Cài đặt", icon: Settings, roles: ["admin"] },
+const NAV_ITEMS: { href: Route; label: string; icon: any; roles: Role[] }[] = [
+  { href: "/admin" as Route, label: "Bảng điều khiển", icon: LayoutDashboard, roles: ["admin", "member"] },
+  { href: "/admin/markets" as Route, label: "Quản lý chợ", icon: Store, roles: ["admin"] },
+  { href: "/admin/products" as Route, label: "Sản phẩm", icon: Boxes, roles: ["admin"] },
+  { href: "/admin/prices" as Route, label: "Giá cả", icon: Tags, roles: ["admin", "member"] },
+  { href: "/admin/members" as Route, label: "Thành viên", icon: Users, roles: ["admin"] },
+  { href: "/admin/settings" as Route, label: "Cài đặt", icon: Settings, roles: ["admin"] },
 ];
 
 export default function AdminSidebar() {
