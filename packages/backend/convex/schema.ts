@@ -30,6 +30,11 @@ export default defineSchema({
 		email: v.string(),
 		name: v.optional(v.string()),
 		role: v.union(v.literal("admin"), v.literal("member")),
+		// Password hashing (optional for service accounts)
+		passwordHash: v.optional(v.string()),
+		passwordSalt: v.optional(v.string()),
+		mustChangePassword: v.optional(v.boolean()),
+		passwordUpdatedAt: v.optional(v.number()),
 		active: v.boolean(),
 		createdAt: v.number(),
 	}).index("by_email", ["email"]).index("by_role", ["role"]).index("by_active", ["active"]),

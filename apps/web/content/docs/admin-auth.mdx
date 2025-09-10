@@ -1,0 +1,108 @@
+---
+title: Quản Lý Xác Thực (Admin)
+description: Hướng dẫn đầy đủ các chức năng xác thực, tạo thành viên, cấp mật khẩu tạm, đổi mật khẩu và bootstrap admin lần đầu.
+---
+
+# Quản Lý Xác Thực (Admin)
+
+Tài liệu này mô tả toàn bộ luồng xác thực dành cho Admin: đăng nhập, tạo thành viên, cấp mật khẩu tạm (qua Convex Dashboard), đổi mật khẩu, và cơ chế bootstrap admin lần đầu.
+
+## Kiến trúc tổng quan
+
+- Frontend: Next.js + NextAuth (Credentials, JWT) — cấu hình tại `apps/web/src/auth.ts`.
+- Backend: Convex — actions chạy trong Node runtime để băm mật khẩu an toàn.
+  - Actions: `auth.verifyCredentials`, `auth.createUser`, `auth.changePassword`, `auth.issueTempPassword`.
+  - Queries/Mutations: `profiles.*`, `marketMembers.*`.
+- Lưu trữ người dùng: bảng `profiles` (Convex) với các trường chính:
+  - `email`, `name`, `role: 'admin'|'member'`, `active`
+  - `passwordHash`, `passwordSalt`, `mustChangePassword?`, `passwordUpdatedAt?`
+
+Các file liên quan:
+
+- `apps/web/src/auth.ts`
+- `packages/backend/convex/auth.ts`
+- `packages/backend/convex/profiles.ts`
+- `packages/backend/convex/schema.ts`
+- UI quản trị:
+  - `apps/web/src/app/(admin)/admin/members/page.tsx`
+  - `apps/web/src/app/(admin)/admin/members/create/page.tsx`
+  - `apps/web/src/app/(admin)/admin/settings/page.tsx`
+
+## Biến môi trường
+
+- Bắt buộc:
+  - `NEXT_PUBLIC_CONVEX_URL` — URL Convex (hiện ra khi chạy `convex dev`).
+  - `AUTH_SECRET` — bí mật NextAuth (có thể tạo bằng `openssl rand -base64 32`).
+- Tuỳ chọn (bootstrap lần đầu):
+  - `ADMIN_EMAIL`, `ADMIN_PASSWORD` — chỉ dùng lần đầu để tạo admin tự động nếu chưa có tài khoản.
+
+Gợi ý: Không cần `NEXTAUTH_URL` (đã bật `trustHost: true`).
+
+## Luồng đăng nhập
+
+1. Tại `/login`, người dùng nhập email/mật khẩu.
+2. NextAuth gọi action Convex `auth.verifyCredentials` để xác thực với mật khẩu đã băm (PBKDF2-SHA512 + salt).
+3. Nếu đúng, role được ghi vào JWT/session; truy cập `/admin` sẽ hợp lệ.
+
+## Bootstrap admin lần đầu
+
+Khi chưa có admin trong hệ thống:
+
+1. Đặt trong `apps/web/.env.local`: `ADMIN_EMAIL`, `ADMIN_PASSWORD`.
+2. Đăng nhập bằng cặp này tại `/login`.
+3. Hệ thống tạo admin vào `profiles` (qua `auth.createUser`) rồi đăng nhập.
+4. Sau khi đã có admin, có thể xoá 2 biến ENV này.
+
+## Quản lý thành viên (UI)
+
+- Danh sách: `/admin/members`.
+- Tạo mới: `/admin/members/create` — nhập email, tên (tuỳ chọn), role và mật khẩu ban đầu.
+- (Tuỳ chọn) Sau này có thể bổ sung gán chợ cho member bằng `marketMembers.*`.
+
+## Cấp mật khẩu tạm khi người dùng quên mật khẩu
+
+Có 2 cách:
+
+### Cách 1 — qua Convex Dashboard (khuyến nghị khi không vào được web)
+
+1. Mở Dashboard theo link xuất hiện khi chạy `convex dev`.
+2. Lấy `_id` của tài khoản qua `profiles.getByEmail({ email })`.
+3. Gọi action `auth.issueTempPassword({ profileId: "..." })`.
+4. Nhận về `{ password }` (mật khẩu tạm, chỉ hiển thị 1 lần). Gửi cho người dùng.
+5. Người dùng đăng nhập bằng mật khẩu tạm, sau đó đổi mật khẩu ngay tại `/admin/settings`.
+
+Đặc điểm an toàn:
+- DB chỉ lưu `passwordHash/passwordSalt`; mật khẩu tạm không lưu plaintext.
+- Action đặt `mustChangePassword=true` để bắt buộc đổi mật khẩu ngay sau khi đăng nhập.
+
+### Cách 2 — ngay trong UI (khi đã login được với quyền admin)
+
+- Ở `/admin/members`, bấm “Cấp mật khẩu tạm” cho tài khoản cần hỗ trợ.
+- Mật khẩu tạm được copy vào clipboard; gửi cho người dùng đổi ngay.
+
+## Đổi mật khẩu (UI)
+
+- Trang: `/admin/settings`.
+- Nhập mật khẩu hiện tại, mật khẩu mới và xác nhận; bấm “Đổi mật khẩu”.
+- Action gọi `auth.changePassword` để cập nhật `passwordHash/passwordSalt` và đặt `mustChangePassword=false`.
+
+## Bảo mật & nguyên tắc
+
+- Không lưu mật khẩu plaintext trong DB. Mọi mật khẩu đều được băm với salt ngẫu nhiên.
+- `passwordSalt` không phải mật khẩu; không thể dùng để khôi phục mật khẩu.
+- Dùng “mật khẩu tạm” thay cho việc xem mật khẩu: plaintext chỉ xuất hiện 1 lần ở response của action dành cho admin/dev.
+- Có thể bổ sung RBAC chặt chẽ hơn (đề xuất):
+  - Chỉ `admin` được gọi `auth.issueTempPassword`, `profiles.create`, CRUD `markets/products`.
+  - `prices.upsert` cho `admin` hoặc `member` có quyền theo `market_members`.
+
+## Khắc phục sự cố
+
+- Lỗi `/api/auth/error?error=Configuration`:
+  - Thiếu `AUTH_SECRET` hoặc `NEXT_PUBLIC_CONVEX_URL`. Bổ sung vào `.env.local`.
+- Lỗi `useSession must be wrapped in <SessionProvider />`:
+  - Đã bọc ở `apps/web/src/components/providers.tsx`, và layout (admin) dùng `Providers`.
+
+---
+
+Nếu cần thêm “banner nhắc đổi mật khẩu” khi `mustChangePassword=true`, hoặc chặn quyền gọi action theo role, hãy mở issue để mình bổ sung.
+
