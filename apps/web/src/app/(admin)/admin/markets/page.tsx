@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 export default function AdminMarketsPage() {
   const markets = useQuery(api.markets.list, { limit: 100 });
   const deleteMarket = useMutation(api.markets.deleteMarket);
-  const [selectedMarkets, setSelectedMarkets] = useState<Set<string>>(new Set());
+  const [selectedMarkets, setSelectedMarkets] = useState<Set<any>>(new Set());
 
   const handleDelete = async (id: any) => {
     try {
@@ -30,9 +30,7 @@ export default function AdminMarketsPage() {
 
   const handleBulkDelete = async () => {
     try {
-      const promises = Array.from(selectedMarkets).map(id => 
-        deleteMarket({ id })
-      );
+      const promises = Array.from(selectedMarkets).map((id: any) => deleteMarket({ id } as any));
       await Promise.all(promises);
       toast.success(`Xóa ${selectedMarkets.size} chợ thành công`);
       setSelectedMarkets(new Set());
@@ -51,7 +49,7 @@ export default function AdminMarketsPage() {
     }
   };
 
-  const toggleSelect = (id: string) => {
+  const toggleSelect = (id: any) => {
     const newSelected = new Set(selectedMarkets);
     if (newSelected.has(id)) {
       newSelected.delete(id);

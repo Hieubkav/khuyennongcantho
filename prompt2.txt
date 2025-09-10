@@ -1,40 +1,49 @@
-[06:59:10.010] Running build in Washington, D.C., USA (East) – iad1
-[06:59:10.010] Build machine configuration: 2 cores, 8 GB
-[06:59:10.040] Cloning github.com/Hieubkav/khuyennongcantho (Branch: master, Commit: 890bfa1)
-[06:59:11.676] Cloning completed: 1.635s
-[06:59:11.829] Restored build cache from previous deployment (ESN9qUM4XRZkG8YYaN6spV6XW1oY)
-[06:59:12.663] Running "vercel build"
-[06:59:13.403] Vercel CLI 47.0.5
-[06:59:13.568] > Detected Turbo. Adjusting default settings...
-[06:59:14.658] Running "install" command: `bun install`...
-[06:59:14.710] bun install v1.2.21 (7c45ed97)
-[06:59:14.737] Resolving dependencies
-[06:59:15.466] Resolved, downloaded and extracted [54]
-[06:59:16.115] Saved lockfile
-[06:59:16.115] 
-[06:59:16.116] Checked 398 installs across 503 packages (no changes) [1434.00ms]
-[06:59:16.130] Detected Next.js version: 15.5.0
-[06:59:16.131] Running "bun run build"
-[06:59:16.135] $ next build
-[06:59:17.255]    ▲ Next.js 15.5.0
-[06:59:17.255] 
-[06:59:17.553] [MDX] updated map file in 28.307010999999875ms
-[06:59:17.587]    Creating an optimized production build ...
-[06:59:31.963]  ✓ Compiled successfully in 14.2s
-[06:59:31.968]    Linting and checking validity of types ...
-[06:59:39.226] Failed to compile.
-[06:59:39.227] 
-[06:59:39.227] ./src/app/(admin)/admin/markets/page.tsx:20:28
-[06:59:39.227] Type error: Type 'string' is not assignable to type 'Id<"markets">'.
-[06:59:39.228]   Type 'string' is not assignable to type '{ __tableName: "markets"; }'.
-[06:59:39.228] 
-[06:59:39.228] [0m [90m 18 |[39m   [36mconst[39m handleDelete [33m=[39m [36masync[39m (id[33m:[39m string) [33m=>[39m {
-[06:59:39.228]  [90m 19 |[39m     [36mtry[39m {
-[06:59:39.228] [31m[1m>[22m[39m[90m 20 |[39m       [36mawait[39m deleteMarket({ id })[33m;[39m
-[06:59:39.228]  [90m    |[39m                            [31m[1m^[22m[39m
-[06:59:39.228]  [90m 21 |[39m       toast[33m.[39msuccess([32m'Xóa chợ thành công'[39m)[33m;[39m
-[06:59:39.228]  [90m 22 |[39m       [90m// Remove from selected markets if it was selected[39m
-[06:59:39.229]  [90m 23 |[39m       [36mconst[39m newSelected [33m=[39m [36mnew[39m [33mSet[39m(selectedMarkets)[33m;[39m[0m
-[06:59:39.256] Next.js build worker exited with code: 1 and signal: null
-[06:59:39.295] error: script "build" exited with code 1
-[06:59:39.302] Error: Command "bun run build" exited with 1
+[07:12:36.164] Running build in Washington, D.C., USA (East) – iad1
+[07:12:36.169] Build machine configuration: 2 cores, 8 GB
+[07:12:36.203] Cloning github.com/Hieubkav/khuyennongcantho (Branch: master, Commit: f8a0d95)
+[07:12:38.596] Cloning completed: 2.389s
+[07:12:38.687] Restored build cache from previous deployment (ESN9qUM4XRZkG8YYaN6spV6XW1oY)
+[07:12:39.231] Running "vercel build"
+[07:12:39.610] Vercel CLI 47.0.5
+[07:12:39.764] > Detected Turbo. Adjusting default settings...
+[07:12:39.907] Running "install" command: `bun install`...
+[07:12:39.940] bun install v1.2.21 (7c45ed97)
+[07:12:39.959] Resolving dependencies
+[07:12:40.803] Resolved, downloaded and extracted [54]
+[07:12:41.401] Saved lockfile
+[07:12:41.405] 
+[07:12:41.405] Checked 398 installs across 503 packages (no changes) [1478.00ms]
+[07:12:41.415] Detected Next.js version: 15.5.0
+[07:12:41.416] Running "bun run build"
+[07:12:41.420] $ next build
+[07:12:42.923]    ▲ Next.js 15.5.0
+[07:12:42.923] 
+[07:12:43.201] [MDX] updated map file in 10.718703000000005ms
+[07:12:43.243]    Creating an optimized production build ...
+[07:12:57.512]  ✓ Compiled successfully in 14.1s
+[07:12:57.518]    Linting and checking validity of types ...
+[07:13:04.582] Failed to compile.
+[07:13:04.583] 
+[07:13:04.583] ./src/app/(admin)/admin/markets/page.tsx:34:24
+[07:13:04.583] Type error: Type 'string' is not assignable to type 'Id<"markets">'.
+[07:13:04.583]   Type 'string' is not assignable to type '{ __tableName: "markets"; }'.
+[07:13:04.584] 
+[07:13:04.584] [0m [90m 32 |[39m     [36mtry[39m {
+[07:13:04.584]  [90m 33 |[39m       [36mconst[39m promises [33m=[39m [33mArray[39m[33m.[39m[36mfrom[39m(selectedMarkets)[33m.[39mmap(id [33m=>[39m 
+[07:13:04.584] [31m[1m>[22m[39m[90m 34 |[39m         deleteMarket({ id })
+[07:13:04.584]  [90m    |[39m                        [31m[1m^[22m[39m
+[07:13:04.584]  [90m 35 |[39m       )[33m;[39m
+[07:13:04.584]  [90m 36 |[39m       [36mawait[39m [33mPromise[39m[33m.[39mall(promises)[33m;[39m
+[07:13:04.584]  [90m 37 |[39m       toast[33m.[39msuccess([32m`Xóa ${selectedMarkets.size} chợ thành công`[39m)[33m;[39m[0m
+[07:13:04.612] Next.js build worker exited with code: 1 and signal: null
+[07:13:04.650] error: script "build" exited with code 1
+[07:13:04.658] Error: Command "bun run build" exited with 1
+
+Khắc phục lỗi TS "Type 'string' is not assignable to type 'Id<\"markets\">'" khi build Vercel
+- Nguyên nhân: biến chọn nhiều (Set) đang lưu `_id` kiểu `string`, trong khi mutation `deleteMarket` nhận `Id<'markets'>` theo typegen Convex.
+- Cách sửa nhanh (an toàn cho CI):
+  - Đặt state chọn nhiều là `useState<Set<any>>(new Set())`.
+  - Khi gọi bulk delete: `Array.from(selectedMarkets).map((id: any) => deleteMarket({ id } as any))`.
+  - Hàm `toggleSelect(id: any)` thay vì `string`.
+- Nếu muốn typed chặt chẽ:
+  - Import `Id` từ `convex/values` hoặc từ `@dohy/backend/convex/_generated/dataModel` rồi khai báo `useState<Set<Id<'markets'>>>(new Set())` và cast đúng chỗ select.
