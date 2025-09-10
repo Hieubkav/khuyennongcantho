@@ -54,7 +54,7 @@ Backend (Convex)
 
 Frontend (Next.js — Admin)
 1) Trang `/admin/prices`
-   - File: `apps/web/src/app/admin/prices/page.tsx` (client component)
+   - File: `apps/web/src/app/(admin)/admin/prices/page.tsx` (client component)
    - Lấy danh mục:
      - `useQuery(api.markets.list, { limit: 200 })`
      - `useQuery(api.products.list, { limit: 200 })`
@@ -71,7 +71,7 @@ Frontend (Next.js — Admin)
 2) TypeScript/UI
    - Import Convex API từ `@dohy/backend/convex/_generated/api`.
    - Khi `.map(...)` mảng dữ liệu từ Convex, thêm kiểu `(x: any)` để tránh lỗi strict/noImplicitAny khi build CI.
-   - Tận dụng `@/components/ui/{button,input,label,card}` để giữ UI tối giản.
+   - Tận dụng `@/components/ui/{button,input,label,card}` để giữ UI tối giản; dùng token shadcn (`bg-background`, `text-foreground`, `border-border`, `text-muted-foreground`) thay vì màu xám cố định để dark mode hoạt động.
 
 Tiêu chí nghiệm thu
 - Schema có bảng `price_history`; Convex build không lỗi.
@@ -86,3 +86,6 @@ Gợi ý xác minh nhanh (CLI)
   - `npx convex data prices`
   - `npx convex data price_history`
 
+Lưu ý triển khai
+- Sau khi thêm module mới, chạy từ thư mục `packages/backend`: `bun x convex dev --once` để cập nhật function spec/codegen; sau đó web mới có `api.prices.*` đầy đủ.
+- Nếu đang dùng `apiAny.units.list` ở FE, có thể giữ `as any` để tránh kẹt type trong CI, nhưng nên chạy `convex dev` thường xuyên để codegen cập nhật d.ts.

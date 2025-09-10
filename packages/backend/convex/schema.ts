@@ -50,4 +50,15 @@ export default defineSchema({
 		createdAt: v.number(),
 		updatedAt: v.optional(v.number()),
 	}).index("by_market_date", ["marketId", "date"]).index("by_product_date", ["productId", "date"]).index("by_market_product_date", ["marketId", "productId", "date"]),
+	price_history: defineTable({
+		priceId: v.id("prices"),
+		marketId: v.id("markets"),
+		productId: v.id("products"),
+		date: v.string(),
+		beforePrice: v.optional(v.number()),
+		afterPrice: v.number(),
+		changedBy: v.optional(v.id("profiles")),
+		changedAt: v.number(),
+		notes: v.optional(v.string()),
+	}).index("by_price", ["priceId"]).index("by_market_product_date", ["marketId", "productId", "date"]),
 });
