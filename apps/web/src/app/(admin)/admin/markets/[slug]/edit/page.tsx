@@ -225,7 +225,8 @@ export default function EditMarketPage({ params }: { params: Promise<{ slug: str
                       return (
                         <tr key={String(it._id)}>
                           <td className="px-4 py-2">{productName.get(pid) ?? pid}</td>
-                          <td className="px-4 py-2">{unitName.get(uid) ?? uid}</td>                          <td className="px-4 py-2 text-right">
+                          <td className="px-4 py-2">{unitName.get(uid) ?? uid}</td>
+                          <td className="px-4 py-2 text-right">
                             <Button size="sm" variant="destructive" onClick={async () => await removeMP({ marketId: (market as any)._id, productId: (it.productId as any).id ?? it.productId } as any)}>Bỏ</Button>
                           </td>
                         </tr>
@@ -241,4 +242,3 @@ export default function EditMarketPage({ params }: { params: Promise<{ slug: str
   </div>
 );
 }
-

@@ -1,2 +1,65 @@
-http://localhost:3000/admin/prices 
-à sản phẩm có đơn vị rồi mà sao mà giá này lại có đơn vị nữa nhỉ
+Prompt cho Qwen
+
+Mục tiêu: Đổi toàn bộ brand hiển thị từ “dohy” sang “Khuyến nông Cần Thơ” trong dự án Next.js, bao gồm title (chữ cạnh favicon trên tab), metadata/SEO, PWA manifest, docs. Không đổi tên file/thư mục/biến/import nếu có rủi ro gãy build; chỉ đổi nội dung hiển thị ra UI và tài liệu.
+
+Thông tin chuẩn cần dùng:
+- Tên hiển thị: Khuyến nông Cần Thơ
+- Short name (PWA): Khuyến nông CT
+- Slug ASCII (nếu cần trong code/package): khuyennong-cantho
+
+Phạm vi chỉnh sửa (ưu tiên theo mức ảnh hưởng UI/SEO):
+- Title/metadata: `app/layout.tsx` (Next 13+ `metadata`), `app/head.tsx`, `pages/_document.tsx`, `pages/_app.tsx`, `next-seo.config.*`, nơi dùng `DefaultSeo`, `Head`, `siteConfig`, `seoConfig`.
+- PWA: `public/manifest.json` hoặc `public/site.webmanifest` (trường `name`, `short_name`, `description`), meta `apple-mobile-web-app-title`.
+- Cấu hình/constant: `site.config.ts`, `site.ts`, `config/seo.ts`, hằng `siteConfig`, `appConfig`.
+- UI copy: Header/Footer/Logo alt text, breadcrumb, nơi hiển thị brand.
+- Tài liệu: `README.md`, các docs ở `docs/**`.
+- Không bắt buộc: `package.json` trường `name` chỉ đổi nếu hiện đang là “dohy”; giữ ASCII, dùng `khuyennong-cantho`.
+
+Không làm:
+- Không đổi tên biến/import/module path, không rename file/icon trừ khi chỉ là text hiển thị.
+- Không động tới domain, endpoint, repo slug, Vercel project name.
+
+Các bước thực hiện:
+1) Lập danh sách xuất hiện từ khóa
+- Chạy tìm kiếm không phân biệt hoa thường, bỏ `node_modules`, `.next`:
+  - `rg -n -S -i "dohy|<title>|DefaultSeo|metadata|siteName|webmanifest|manifest|apple-mobile-web-app-title" --glob '!.next' --glob '!node_modules'`
+  - Riêng text brand: `rg -n -S -i "dohy" --glob '!.next' --glob '!node_modules'`
+2) Cập nhật title/metadata
+- Nếu dùng `app/layout.tsx` (Next 13+): đặt `metadata.title` về
+  - `title: { default: 'Khuyến nông Cần Thơ', template: '%s | Khuyến nông Cần Thơ' }`
+  - Thêm `applicationName: 'Khuyến nông Cần Thơ'`
+- Nếu dùng `next-seo`: cập nhật `defaultTitle`, `titleTemplate`, `openGraph.siteName` về “Khuyến nông Cần Thơ”.
+- Nếu thấy `<Head><title>…</title></Head>` hoặc `<title>` rải rác: thay text thành “Khuyến nông Cần Thơ”.
+3) Cập nhật PWA/Apple meta
+- `public/manifest.json` hoặc `public/site.webmanifest`:
+  - `"name": "Khuyến nông Cần Thơ"`, `"short_name": "Khuyến nông CT"`
+  - Cập nhật `description` nếu chứa “dohy”.
+- Thêm/cập nhật meta: `<meta name="apple-mobile-web-app-title" content="Khuyến nông Cần Thơ" />`
+4) Cập nhật constants/UI copy
+- Trong `site.config.ts`, `site.ts` hoặc tương tự: `name`, `siteName`, `appName` → “Khuyến nông Cần Thơ”.
+- Header/Footer/Logo alt/text hiển thị brand → “Khuyến nông Cần Thơ”.
+5) Cập nhật tài liệu
+- `README.md`, `docs/**`: thay “dohy” bằng “Khuyến nông Cần Thơ” ở phần mô tả/tiêu đề.
+6) (Tuỳ chọn) package.json
+- Nếu `name` đang là “dohy” hoặc tương tự, đổi thành `"khuyennong-cantho"` (ASCII).
+7) Kiểm tra & nghiệm thu
+- Tìm lại: `rg -n -S -i "dohy" --glob '!.next' --glob '!node_modules'` → không còn kết quả trong code hiển thị/SEO/docs.
+- Dev build chạy: `pnpm dev` hoặc `npm run dev`:
+  - Tab trình duyệt hiển thị “Khuyến nông Cần Thơ”.
+  - View source/Elements: `og:site_name`, `<title>`, `apple-mobile-web-app-title` đúng.
+  - `public/*manifest*.json` hợp lệ JSON và chứa name/short_name mới.
+- Không phát sinh TypeScript/lint error do đổi text.
+8) Gợi ý commit
+- `chore(branding): rename to "Khuyến nông Cần Thơ" across metadata, PWA, docs`
+
+Tiêu chí nghiệm thu:
+- Tất cả vị trí UI/SEO/PWA/docs hiển thị “Khuyến nông Cần Thơ”.
+- Không còn xuất hiện “dohy” trong nội dung hiển thị và tài liệu.
+- Build/dev chạy bình thường, không gãy import/kiểu.
+- Manifest và meta liên quan phản ánh brand mới.
+
+Lưu ý:
+- Giữ nguyên tên biến/file/import có “dohy” nếu việc đổi có nguy cơ gãy; chỉ đổi text hiển thị.
+- Bảo toàn dấu tiếng Việt chính xác: “Khuyến nông Cần Thơ”.
+- Nếu có i18n (`/locales`), cập nhật chuỗi brand tương ứng.
+

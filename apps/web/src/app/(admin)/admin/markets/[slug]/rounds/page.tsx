@@ -33,9 +33,8 @@ export default function MarketRoundPage({ params }: { params: Promise<{ slug: st
 
   const create = useMutation(apiAny.priceRounds.create);
   const close = useMutation(apiAny.priceRounds.close);
-  const submit = useMutation(apiAny.priceRounds.submit);
+  const submit = useMutation(apiAny.priceRounds.submitV2);
 
-  // local state for prices by productId
   const [values, setValues] = useState<Record<string, { price: string; noteType: NoteType; notes: string }>>({});
 
   useEffect(() => {
@@ -109,8 +108,11 @@ export default function MarketRoundPage({ params }: { params: Promise<{ slug: st
     }
   };
 
-  const today = new Date().toISOString().slice(0, 10);
-  const isToday = forDate === today;
+  // Đồng bộ timezone với backend (Asia/Ho_Chi_Minh)
+  const vnToday = useMemo(() =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+  , []);
+  const isToday = forDate === vnToday;
 
   return (
     <div className="space-y-6">
@@ -118,7 +120,7 @@ export default function MarketRoundPage({ params }: { params: Promise<{ slug: st
         <CardHeader className="flex items-center justify-between">
           <CardTitle>Đợt lấy giá - {market.name}</CardTitle>
           <div className="flex gap-2">
-            <Input type="date" value={forDate} onChange={(e) => setForDate(e.target.value)} className="w-48" />
+            <Input type="date" value={forDate} onChange={(e) => setForDate(e.target.value)} className="w-40 sm:w-48" />
             {!round && (
               <Button onClick={handleCreateRound}>Tạo đợt cho ngày đã chọn</Button>
             )}
@@ -131,62 +133,99 @@ export default function MarketRoundPage({ params }: { params: Promise<{ slug: st
           {!round ? (
             <div>Chưa có đợt cho ngày đã chọn.</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium">Sản phẩm</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium">Đơn vị</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium">Giá</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium">Ghi chú</th>
-                    <th className="px-4 py-2 text-right text-xs font-medium">Lưu</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {(round as any).items.map((it: any) => {
-                    const pid = String((it.productId as any).id ?? it.productId);
-                    const uid = String((it.unitId as any).id ?? it.unitId);
-                    const v = values[pid] ?? { price: '', noteType: undefined, notes: '' };
-                    const unit = unitMap.get(uid)?.name ?? uid;
-                    return (
-                      <tr key={pid}>
-                        <td className="px-4 py-2">{productMap.get(pid)?.name ?? pid}</td>
-                        <td className="px-4 py-2">{unit}</td>
-                        <td className="px-4 py-2">
-                          <div className="flex items-center gap-2">
-                            <Input type="number" min={0} step={100} className="w-40" value={v.price} onChange={(e) => handleChange(pid, 'price', e.target.value)} />
-                            <Select value={v.noteType || ''} onValueChange={(val) => handleChange(pid, 'noteType', val)}>
-                              <SelectTrigger className="w-32">
-                                <SelectValue placeholder="Ghi chú" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="">Không</SelectItem>
-                                <SelectItem value="up">Tăng</SelectItem>
-                                <SelectItem value="down">Giảm</SelectItem>
-                                <SelectItem value="other">Khác</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </td>
-                        <td className="px-4 py-2">
-                          <Input value={v.notes} onChange={(e) => handleChange(pid, 'notes', e.target.value)} placeholder="Ghi chú" />
-                        </td>
-                          <td className="px-4 py-2 text-right">
-                            <Button size="sm" onClick={() => handleSubmit(pid)} disabled={!isToday}>
-                              {isToday ? 'Lưu' : 'Chỉ tại ngày nhập'}
-                            </Button>
+            <>
+              {/* Mobile: card list */}
+              <div className="md:hidden grid gap-3">
+                {(round as any).items.map((it: any) => {
+                  const pid = String((it.productId as any).id ?? it.productId);
+                  const uid = String((it.unitId as any).id ?? it.unitId);
+                  const v = values[pid] ?? { price: '', noteType: undefined, notes: '' };
+                  const unit = unitMap.get(uid)?.name ?? uid;
+                  return (
+                    <div key={pid} className="rounded border p-3 bg-white space-y-2">
+                      <div className="text-sm font-medium">{productMap.get(pid)?.name ?? pid}</div>
+                      <div className="text-xs text-muted-foreground">Đơn vị: {unit}</div>
+                      <div className="flex items-center gap-2">
+                        <Input type="number" min={0} step={100} className="w-40 flex-1" value={v.price} onChange={(e) => handleChange(pid, 'price', e.target.value)} />
+                        <Select value={(v.noteType as string) || 'none'} onValueChange={(val) => handleChange(pid, 'noteType', val === 'none' ? (undefined as any) : (val as any))}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="Ghi chú" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Không</SelectItem>
+                            <SelectItem value="up">Tăng</SelectItem>
+                            <SelectItem value="down">Giảm</SelectItem>
+                            <SelectItem value="other">Khác</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Input value={v.notes} onChange={(e) => handleChange(pid, 'notes', e.target.value)} placeholder="Ghi chú" />
+                      <div className="flex justify-end">
+                        <Button size="sm" onClick={() => handleSubmit(pid)} disabled={!isToday}>{isToday ? 'Lưu' : 'Chờ tới ngày'}</Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop: table */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium">Sản phẩm</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium">Đơn vị</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium">Giá</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium">Ghi chú</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium">Lưu</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {(round as any).items.map((it: any) => {
+                      const pid = String((it.productId as any).id ?? it.productId);
+                      const uid = String((it.unitId as any).id ?? it.unitId);
+                      const v = values[pid] ?? { price: '', noteType: undefined, notes: '' };
+                      const unit = unitMap.get(uid)?.name ?? uid;
+                      return (
+                        <tr key={pid}>
+                          <td className="px-4 py-2">{productMap.get(pid)?.name ?? pid}</td>
+                          <td className="px-4 py-2">{unit}</td>
+                          <td className="px-4 py-2">
+                            <div className="flex items-center gap-2">
+                              <Input type="number" min={0} step={100} className="w-40" value={v.price} onChange={(e) => handleChange(pid, 'price', e.target.value)} />
+                              <Select value={(v.noteType as string) || 'none'} onValueChange={(val) => handleChange(pid, 'noteType', val === 'none' ? (undefined as any) : (val as any))}>
+                                <SelectTrigger className="w-32">
+                                  <SelectValue placeholder="Ghi chú" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">Không</SelectItem>
+                                  <SelectItem value="up">Tăng</SelectItem>
+                                  <SelectItem value="down">Giảm</SelectItem>
+                                  <SelectItem value="other">Khác</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
                           </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
+                          <td className="px-4 py-2">
+                            <Input value={v.notes} onChange={(e) => handleChange(pid, 'notes', e.target.value)} placeholder="Ghi chú" />
+                          </td>
+                            <td className="px-4 py-2 text-right">
+                              <Button size="sm" onClick={() => handleSubmit(pid)} disabled={!isToday}>
+                                {isToday ? 'Lưu' : 'Chờ tới ngày nhập'}
+                              </Button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
                 </table>
                 {!isToday && (
                   <div className="text-sm text-muted-foreground mt-2">Đợt này chưa đến ngày nhập. Thành viên chỉ xem, không nhập trước.</div>
                 )}
               </div>
-            )}
-          </CardContent>
+            </>
+          )}
+        </CardContent>
         </Card>
 
       {status && (
@@ -221,10 +260,6 @@ export default function MarketRoundPage({ params }: { params: Promise<{ slug: st
           </CardContent>
         </Card>
       )}
-      {market && Array.isArray(managers) && managers.length === 0 && (
-        <div className="text-sm text-red-600">Chợ này chưa có thành viên quản lý. Hãy phân quyền trước khi tạo đợt.</div>
-      )}
     </div>
   );
 }
-

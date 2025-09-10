@@ -46,6 +46,19 @@ export const getById = query({
   },
 });
 
+// Batch: public info by ids (sans secrets)
+export const getManyPublic = query({
+  args: { ids: v.array(v.id('profiles')) },
+  handler: async (ctx, args) => {
+    const results: any[] = [];
+    for (const id of args.ids) {
+      const p = await ctx.db.get(id);
+      if (p) results.push(sanitize(p));
+    }
+    return results;
+  },
+});
+
 // Internal use by actions: return secrets for auth flow
 export const getSecretsByEmail = query({
   args: { email: v.string() },
@@ -118,4 +131,3 @@ export const update = mutation({
     return args.id;
   },
 });
-

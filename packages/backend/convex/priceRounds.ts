@@ -68,6 +68,7 @@ export const create = mutation({
       forDate: date,
       items,
       status: 'open',
+      managerId: (activeManagers[0].profileId as any),
       createdBy: args.creatorId,
       createdAt: Date.now(),
     });
@@ -136,6 +137,15 @@ export const submit = mutation({
     const item = (round.items as Array<any>).find((x) => ((x.productId as any).id ?? (x.productId as any)).toString() === (((args.productId as any).id ?? (args.productId as any)).toString()));
     if (!item) throw new Error('Sản phẩm không thuộc danh sách của đợt');
 
+    // Enforce snapshot manager authorization if present
+    if ((round as any).managerId) {
+      const snap = ((round as any).managerId as any).id ?? (round as any).managerId;
+      const editor = ((args.editorId as any).id ?? args.editorId);
+      if (String(snap) !== String(editor)) {
+        throw new Error('Chi nguoi quan ly tai thoi diem tao duoc phep nhap gia');
+      }
+    }
+
     // Optionally ensure editor is a member of this market
     const hasAccess = await ctx.db
       .query('market_members')
@@ -200,6 +210,187 @@ export const submit = mutation({
       });
       return newId;
     }
+  },
+});
+
+// V2: submit co rang buoc theo manager snapshot neu co
+export const submitV2 = mutation({
+  args: {
+    roundId: v.id('price_rounds'),
+    productId: v.id('products'),
+    editorId: v.id('profiles'),
+    price: v.number(),
+    noteType: v.optional(v.union(v.literal('up'), v.literal('down'), v.literal('other'))),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    if (args.price <= 0) throw new Error('Gia phai > 0');
+
+    const round = await ctx.db.get(args.roundId);
+    if (!round) throw new Error('Khong tim thay dot lay gia');
+    if (round.status !== 'open') throw new Error('Dot da dong');
+
+    const today = todayInTzYYYYMMDD('Asia/Ho_Chi_Minh');
+    if (round.forDate !== today) throw new Error('Chi duoc nhap trong dung ngay cua dot');
+
+    const item = (round.items as Array<any>).find((x) => ((x.productId as any).id ?? (x.productId as any)).toString() === (((args.productId as any).id ?? (args.productId as any)).toString()));
+    if (!item) throw new Error('San pham khong thuoc danh sach cua dot');
+
+    // Enforce snapshot manager if present
+    if ((round as any).managerId) {
+      const snap = ((round as any).managerId as any).id ?? (round as any).managerId;
+      const editor = ((args.editorId as any).id ?? args.editorId);
+      if (String(snap) !== String(editor)) {
+        throw new Error('Chi nguoi quan ly tai thoi diem tao duoc phep nhap gia');
+      }
+    } else {
+      // Fallback: must be active member
+      const hasAccess = await ctx.db
+        .query('market_members')
+        .withIndex('by_market_profile', (q) => q.eq('marketId', round.marketId).eq('profileId', args.editorId))
+        .unique();
+      if (!hasAccess || !hasAccess.active) throw new Error('Thanh vien khong co quyen nhap cho cho nay');
+    }
+
+    // Upsert
+    const existing = await ctx.db
+      .query('prices')
+      .withIndex('by_market_product_date', (q) => q.eq('marketId', round.marketId).eq('productId', args.productId).eq('date', round.forDate))
+      .unique();
+
+    const timestamp = Date.now();
+
+    if (existing) {
+      const beforePrice = existing.price;
+      await ctx.db.patch(existing._id, {
+        unitId: item.unitId,
+        price: args.price,
+        noteType: args.noteType,
+        notes: args.notes,
+        updatedAt: timestamp,
+        createdBy: args.editorId,
+      });
+      await ctx.db.insert('price_history', {
+        priceId: existing._id,
+        marketId: round.marketId,
+        productId: args.productId,
+        date: round.forDate,
+        beforePrice,
+        afterPrice: args.price,
+        changedBy: args.editorId,
+        changedAt: timestamp,
+        noteType: args.noteType,
+        notes: args.notes,
+      });
+      return existing._id;
+    } else {
+      const newId = await ctx.db.insert('prices', {
+        marketId: round.marketId,
+        productId: args.productId,
+        unitId: item.unitId,
+        date: round.forDate,
+        price: args.price,
+        noteType: args.noteType,
+        notes: args.notes,
+        createdBy: args.editorId,
+        createdAt: timestamp,
+      });
+      await ctx.db.insert('price_history', {
+        priceId: newId,
+        marketId: round.marketId,
+        productId: args.productId,
+        date: round.forDate,
+        beforePrice: undefined,
+        afterPrice: args.price,
+        changedBy: args.editorId,
+        changedAt: timestamp,
+        noteType: args.noteType,
+        notes: args.notes,
+      });
+      return newId;
+    }
+  },
+});
+
+export const getWithPrices = query({
+  args: { id: v.id('price_rounds') },
+  handler: async (ctx, args) => {
+    const round = await ctx.db.get(args.id);
+    if (!round) return null;
+    const prices = await ctx.db
+      .query('prices')
+      .withIndex('by_market_date', (q) => q.eq('marketId', round.marketId).eq('date', round.forDate))
+      .collect();
+    const priceMap = new Map<string, any>();
+    for (const p of prices) priceMap.set(((p.productId as any).id ?? (p.productId as any)).toString(), p);
+    const items = (round.items as any[]).map((it: any) => {
+      const pid = ((it.productId as any).id ?? (it.productId as any)).toString();
+      return { ...it, price: priceMap.get(pid) ?? null };
+    });
+    return { ...round, items };
+  },
+});
+
+export const list = query({
+  args: {
+    marketId: v.optional(v.id('markets')),
+    status: v.optional(v.union(v.literal('open'), v.literal('closed'))),
+    forDate: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 50;
+    const all = await ctx.db.query('price_rounds').collect();
+    const filtered = all
+      .filter((r: any) => (args.marketId ? String(((r.marketId as any).id ?? r.marketId)) === String(((args.marketId as any).id ?? args.marketId)) : true))
+      .filter((r: any) => (args.status ? r.status === args.status : true))
+      .filter((r: any) => (args.forDate ? r.forDate === args.forDate : true))
+      .sort((a: any, b: any) => b.createdAt - a.createdAt)
+      .slice(0, limit);
+    return filtered;
+  },
+});
+
+// List rounds kèm thống kê nhanh: productCount, filledCount, completion
+export const listWithStatus = query({
+  args: {
+    marketId: v.optional(v.id('markets')),
+    status: v.optional(v.union(v.literal('open'), v.literal('closed'))),
+    forDate: v.optional(v.string()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 50;
+    const all = await ctx.db.query('price_rounds').collect();
+    const rounds = all
+      .filter((r: any) => (args.marketId ? String(((r.marketId as any).id ?? r.marketId)) === String(((args.marketId as any).id ?? args.marketId)) : true))
+      .filter((r: any) => (args.status ? r.status === args.status : true))
+      .filter((r: any) => (args.forDate ? r.forDate === args.forDate : true))
+      .sort((a: any, b: any) => b.createdAt - a.createdAt)
+      .slice(0, limit);
+
+    const results: any[] = [];
+    for (const r of rounds) {
+      const prices = await ctx.db
+        .query('prices')
+        .withIndex('by_market_date', (q) => q.eq('marketId', r.marketId).eq('date', r.forDate))
+        .collect();
+      const productIds = (r.items as Array<any>).map((x) => ((x.productId as any).id ?? (x.productId as any)).toString());
+      const priceByPid = new Set<string>();
+      for (const p of prices) {
+        const pid = ((p.productId as any).id ?? (p.productId as any)).toString();
+        if (productIds.includes(pid)) priceByPid.add(pid);
+      }
+      const productCount = productIds.length;
+      const filledCount = priceByPid.size;
+      results.push({
+        round: r,
+        productCount,
+        filledCount,
+        completion: productCount ? filledCount / productCount : 0,
+      });
+    }
+    return results;
   },
 });
 

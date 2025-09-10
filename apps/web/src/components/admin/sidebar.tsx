@@ -22,20 +22,37 @@ const NAV_ITEMS: { href: Route; label: string; icon: any; roles: Role[] }[] = [
   { href: "/admin/settings" as Route, label: "Cài đặt", icon: Settings, roles: ["admin"] },
 ];
 
-export default function AdminSidebar() {
+type SidebarProps = {
+  collapsed?: boolean;
+  onCollapsedChange?: (v: boolean) => void;
+  hideToggle?: boolean;
+  onNavItemClick?: () => void;
+  className?: string;
+};
+
+export default function AdminSidebar({ collapsed, onCollapsedChange, hideToggle, onNavItemClick, className }: SidebarProps = {}) {
   const pathname = usePathname();
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [internalCollapsed, setInternalCollapsed] = useState<boolean>(collapsed ?? true);
   const { data: session } = useSession();
   const role = ((session?.user as any)?.role ?? "member") as Role;
 
+  const isControlled = collapsed !== undefined;
+  const isCollapsed = isControlled ? (collapsed as boolean) : internalCollapsed;
+
   useEffect(() => {
+    if (isControlled) return;
     const stored = localStorage.getItem("adminSidebarCollapsed");
-    if (stored) setIsCollapsed(JSON.parse(stored));
-  }, []);
+    if (stored) setInternalCollapsed(JSON.parse(stored));
+  }, [isControlled]);
 
   const toggleCollapse = () => {
-    setIsCollapsed(!isCollapsed);
-    localStorage.setItem("adminSidebarCollapsed", JSON.stringify(!isCollapsed));
+    const next = !isCollapsed;
+    if (isControlled) {
+      onCollapsedChange?.(next);
+    } else {
+      setInternalCollapsed(next);
+      localStorage.setItem("adminSidebarCollapsed", JSON.stringify(next));
+    }
   };
 
   return (
@@ -43,14 +60,17 @@ export default function AdminSidebar() {
       <aside
         className={cn(
           "border-r border-gray-200 bg-white text-gray-900 p-3 flex flex-col transition-all duration-300 ease-in-out",
-          isCollapsed ? "w-16" : "w-60"
+          isCollapsed ? "w-16" : "w-60",
+          className
         )}
       >
         <div className="flex items-center justify-between mb-4">
           {!isCollapsed && <div className="text-lg font-semibold">Admin</div>}
-          <Button variant="ghost" size="icon" onClick={toggleCollapse}>
-            <ChevronsLeftRight className="h-4 w-4" />
-          </Button>
+          {!hideToggle && (
+            <Button variant="ghost" size="icon" onClick={toggleCollapse}>
+              <ChevronsLeftRight className="h-4 w-4" />
+            </Button>
+          )}
         </div>
         <nav className="space-y-1">
           {NAV_ITEMS.filter((it) => it.roles.includes(role)).map((it) => {
@@ -67,6 +87,7 @@ export default function AdminSidebar() {
                       active && "bg-gray-100 border-l-2 border-black",
                       isCollapsed && "justify-center"
                     )}
+                    onClick={onNavItemClick}
                   >
                     <Link href={it.href}>
                       <Icon className="h-4 w-4" />
@@ -87,4 +108,3 @@ export default function AdminSidebar() {
     </TooltipProvider>
   );
 }
-

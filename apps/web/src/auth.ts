@@ -52,11 +52,21 @@ export const { auth, signIn, signOut, handlers: { GET, POST } } = NextAuth({
   session: { strategy: 'jwt' },
   callbacks: {
     jwt({ token, user }) {
-      (token as any).role = (user as any)?.role ?? (token as any).role ?? 'member';
+      // Lưu id/role/name/email vào token để dùng lại ở session
+      if (user) {
+        (token as any).id = (user as any).id ?? (token as any).id ?? token.sub;
+        (token as any).role = (user as any).role ?? (token as any).role ?? 'member';
+        if ((user as any).name) token.name = (user as any).name as any;
+        if ((user as any).email) token.email = (user as any).email as any;
+      }
       return token;
     },
     session({ session, token }) {
+      // Đảm bảo client nhận được user.id & role
+      (session.user as any).id = (token as any).id ?? token.sub ?? (session.user as any).id;
       (session.user as any).role = (token as any).role ?? 'member';
+      if (token.name) session.user.name = token.name;
+      if (token.email) session.user.email = token.email as any;
       return session;
     }
   },

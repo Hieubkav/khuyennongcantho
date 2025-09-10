@@ -39,7 +39,7 @@ Your app will connect to the Convex cloud backend automatically.
 ## Project Structure
 
 ```
-dohy/
+khuyennong-cantho/
 ├── apps/
 │   ├── web/         # Frontend application (Next.js)
 ├── packages/

@@ -14,8 +14,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-	title: "dohy",
-	description: "dohy",
+	title: {
+		default: 'Khuyến nông Cần Thơ',
+		template: '%s | Khuyến nông Cần Thơ',
+	},
+	description: "Khuyến nông Cần Thơ",
+	applicationName: 'Khuyến nông Cần Thơ',
 };
 
 export default function RootLayout({

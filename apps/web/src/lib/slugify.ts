@@ -1,10 +1,10 @@
-export function slugify(input: string) {
-  return input
+export function slugify(text: string): string {
+  return text
+    .toString()
     .toLowerCase()
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '') // bỏ dấu tiếng Việt
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-');
+    .replace(/\s+/g, "-") // Replace spaces with -
+    .replace(/[^\w-]+/g, "") // Remove all non-word chars
+    .replace(/--+/g, "-") // Replace multiple - with single -
+    .replace(/^-+/, "") // Trim - from start of text
+    .replace(/-+$/, ""); // Trim - from end of text
 }

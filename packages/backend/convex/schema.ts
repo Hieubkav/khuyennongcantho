@@ -56,6 +56,8 @@ export default defineSchema({
 		forDate: v.string(), // YYYY-MM-DD theo giờ VN
 		items: v.array(v.object({ productId: v.id("products"), unitId: v.id("units") })),
 		status: v.union(v.literal("open"), v.literal("closed")),
+		// Snapshot manager tai thoi diem tao (co the undefined voi du lieu cu)
+		managerId: v.optional(v.id("profiles")),
 		createdBy: v.id("profiles"),
 		createdAt: v.number(),
 	}).index("by_market_date", ["marketId", "forDate"]).index("by_market_status", ["marketId", "status"]),

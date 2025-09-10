@@ -1,91 +1,23 @@
-Triển khai bước 9–10: Admin Prices + price_history (tối thiểu)
-
-Mục tiêu
-- Thêm chức năng nhập giá theo chợ/sản phẩm/ngày và lưu lịch sử thay đổi.
-- Đảm bảo ràng buộc: giá > 0, không cho ngày tương lai, duy nhất theo (marketId, productId, date).
-
-Bối cảnh hiện có
-- Convex schema đã có: `units, products, markets, profiles, market_members, prices` (chưa có `price_history`).
-- Danh mục: đã có `units.list`, `markets.list`, `products.list`.
-- Admin: đã có Auth + trang Markets/Products; cần thêm trang Prices.
-
-Backend (Convex)
-1) Cập nhật schema — thêm bảng `price_history`
-   - File: `packages/backend/convex/schema.ts`
-   - Thêm bảng:
-     - `price_history`: {
-         priceId: v.id('prices'),
-         marketId: v.id('markets'),
-         productId: v.id('products'),
-         date: v.string(),
-         beforePrice: v.optional(v.number()),
-         afterPrice: v.number(),
-         changedBy: v.optional(v.id('profiles')),
-         changedAt: v.number(),
-         notes: v.optional(v.string()),
-       }
-     - Index gợi ý:
-       - `.index('by_price', ['priceId'])`
-       - `.index('by_market_product_date', ['marketId','productId','date'])`
-
-2) Tạo module `packages/backend/convex/prices.ts`
-   - Export các hàm:
-     - `list`: query
-       - args: { marketId?: Id<'markets'>; productId?: Id<'products'>; date?: string; limit?: number; cursor?: string }
-       - Lọc theo tham số nếu có, dùng các index đã khai báo (`by_market_date`/`by_product_date`/`by_market_product_date`).
-       - Trả về `{ prices, cursor }` với phân trang đơn giản (order asc, take limit+1, cắt 1 để sinh cursor).
-     - `upsert`: mutation (điểm chính)
-       - args: { marketId: Id<'markets'>; productId: Id<'products'>; unitId: Id<'units'>; date: string (YYYY-MM-DD); price: number; notes?: string }
-       - Validate:
-         - `price > 0`.
-         - `date` không lớn hơn ngày hiện tại.
-         - `marketId`, `productId`, `unitId` tồn tại; (nếu `unitId !== product.defaultUnitId` thì vẫn chấp nhận, có thể TODO cảnh báo sau).
-       - Logic:
-         - Tìm bản ghi theo `by_market_product_date`.
-         - Nếu chưa có: `insert` vào `prices` { unitId, price, notes?, createdAt=Date.now(), createdBy? }.
-         - Nếu đã có: `patch` bản ghi cũ { unitId, price, notes?, updatedAt=Date.now() }.
-         - Ghi `price_history` mỗi lần insert/update: { priceId, marketId, productId, date, beforePrice?, afterPrice, changedBy?, changedAt=Date.now(), notes? }.
-
-   - Lưu ý style/kiểu:
-     - Giữ cấu trúc và cách viết tương tự `markets.ts`, `products.ts`.
-     - Dùng `v` từ `convex/values` và index đã có trong `prices`.
-
-3) (Tuỳ chọn) Thêm query lịch sử: `historyByMarketProductDate` để xem các lần thay đổi mới nhất cho một (market, product, date).
-
-Frontend (Next.js — Admin)
-1) Trang `/admin/prices`
-   - File: `apps/web/src/app/(admin)/admin/prices/page.tsx` (client component)
-   - Lấy danh mục:
-     - `useQuery(api.markets.list, { limit: 200 })`
-     - `useQuery(api.products.list, { limit: 200 })`
-     - `useQuery((api as any).units.list, { active: true, limit: 200 })`
-   - Form nhập giá:
-     - Trường: market (select), product (select), unit (select), date (input type=date), price (number), notes (optional)
-     - Validate FE: `price > 0`, `date` không tương lai, các select không rỗng.
-     - Submit: gọi `useMutation(api.prices.upsert)` với payload đúng kiểu.
-     - Thành công: reset form, thông báo; thất bại: hiển thị lỗi.
-   - Danh sách giá gần đây:
-     - `useQuery(api.prices.list, { limit: 50 })` → hiển thị bảng (market, product, date, unit, price).
-     - Map tên đơn vị từ `_id -> name` như ở trang Products.
-
-2) TypeScript/UI
-   - Import Convex API từ `@dohy/backend/convex/_generated/api`.
-   - Khi `.map(...)` mảng dữ liệu từ Convex, thêm kiểu `(x: any)` để tránh lỗi strict/noImplicitAny khi build CI.
-   - Tận dụng `@/components/ui/{button,input,label,card}` để giữ UI tối giản; dùng token shadcn (`bg-background`, `text-foreground`, `border-border`, `text-muted-foreground`) thay vì màu xám cố định để dark mode hoạt động.
-
-Tiêu chí nghiệm thu
-- Schema có bảng `price_history`; Convex build không lỗi.
-- `prices.upsert` từ chối `price <= 0` hoặc `date` tương lai; đảm bảo uniqueness theo (marketId, productId, date).
-- Ghi `price_history` với before/after và thời điểm thay đổi.
-- `/admin/prices` nhập được giá và hiển thị danh sách; không lỗi console.
-
-Gợi ý xác minh nhanh (CLI)
-- Tạo giá:
-  - `npx convex run prices:upsert '{"marketId":"<id markets:...>","productId":"<id products:...>","unitId":"<id units:...>","date":"2025-09-10","price":15000}'`
-- Xem dữ liệu:
-  - `npx convex data prices`
-  - `npx convex data price_history`
-
-Lưu ý triển khai
-- Sau khi thêm module mới, chạy từ thư mục `packages/backend`: `bun x convex dev --once` để cập nhật function spec/codegen; sau đó web mới có `api.prices.*` đầy đủ.
-- Nếu đang dùng `apiAny.units.list` ở FE, có thể giữ `as any` để tránh kẹt type trong CI, nhưng nên chạy `convex dev` thường xuyên để codegen cập nhật d.ts.
+[{
+	"resource": "/E:/NextJS/persional_project/khuyennong/khuyennongcantho/apps/web/src/app/(site)/page.tsx",
+	"owner": "typescript",
+	"code": "2322",
+	"severity": 8,
+	"message": "Type 'string' is not assignable to type 'UrlObject | RouteImpl<string>'.",
+	"source": "ts",
+	"startLineNumber": 131,
+	"startColumn": 13,
+	"endLineNumber": 131,
+	"endColumn": 17,
+	"relatedInformation": [
+		{
+			"startLineNumber": 102,
+			"startColumn": 5,
+			"endLineNumber": 102,
+			"endColumn": 9,
+			"message": "The expected type comes from property 'href' which is declared here on type 'IntrinsicAttributes & LinkRestProps & { href: UrlObject | RouteImpl<string>; }'",
+			"resource": "/e:/NextJS/persional_project/khuyennong/khuyennongcantho/apps/web/.next/types/link.d.ts"
+		}
+	],
+	"origin": "extHost1"
+}]
