@@ -13,7 +13,8 @@ export default function AdminPage() {
       toast.error("Bạn không có quyền truy cập khu vực này.");
       const params = new URLSearchParams(search as any);
       params.delete("unauthorized");
-      router.replace(`/admin${params.size ? `?${params.toString()}` : ""}`);
+      // Để đơn giản và an toàn kiểu Route, quay lại /admin
+      router.replace("/admin");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
