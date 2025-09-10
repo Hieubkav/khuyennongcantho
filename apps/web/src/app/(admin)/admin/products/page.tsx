@@ -16,7 +16,7 @@ export default function AdminProductsPage() {
   const products = useQuery(api.products.list, { limit: 100 });
   const unitsData = useQuery(apiAny.units.list, { active: true, limit: 200 });
   const deleteProduct = useMutation(api.products.deleteProduct);
-  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [selectedProducts, setSelectedProducts] = useState<Set<any>>(new Set());
 
   const units = unitsData?.units ?? [];
   const unitNameById = useMemo(() => {
@@ -42,9 +42,7 @@ export default function AdminProductsPage() {
 
   const handleBulkDelete = async () => {
     try {
-      const promises = Array.from(selectedProducts).map(id => 
-        deleteProduct({ id })
-      );
+      const promises = Array.from(selectedProducts).map((id: any) => deleteProduct({ id } as any));
       await Promise.all(promises);
       toast.success(`Xóa ${selectedProducts.size} sản phẩm thành công`);
       setSelectedProducts(new Set());
@@ -63,7 +61,7 @@ export default function AdminProductsPage() {
     }
   };
 
-  const toggleSelect = (id: string) => {
+  const toggleSelect = (id: any) => {
     const newSelected = new Set(selectedProducts);
     if (newSelected.has(id)) {
       newSelected.delete(id);
