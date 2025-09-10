@@ -138,3 +138,4 @@ export default function MarketProductsPage({ params }: { params: Promise<{ slug:
     </div>
   );
 }
+

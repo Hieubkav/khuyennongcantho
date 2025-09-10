@@ -48,7 +48,7 @@ export default function CreateProductPage() {
     }
 
     if (!/^[a-z0-9-]+$/.test(slug)) {
-      setError('Slug chỉ có thể chứa chữ thường, số và dấu gạch ngang');
+      setError('Slug chỉ chứa chữ thường, số và dấu gạch ngang');
       return;
     }
 
@@ -114,3 +114,4 @@ export default function CreateProductPage() {
     </Card>
   );
 }
+

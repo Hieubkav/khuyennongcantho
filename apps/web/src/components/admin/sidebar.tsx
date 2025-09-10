@@ -15,6 +15,7 @@ const NAV_ITEMS: { href: Route; label: string; icon: any; roles: Role[] }[] = [
   { href: "/admin" as Route, label: "Bảng điều khiển", icon: LayoutDashboard, roles: ["admin", "member"] },
   { href: "/admin/markets" as Route, label: "Quản lý chợ", icon: Store, roles: ["admin"] },
   { href: "/admin/products" as Route, label: "Sản phẩm", icon: Boxes, roles: ["admin"] },
+  { href: "/admin/units" as Route, label: "Đơn vị", icon: Tags, roles: ["admin"] },
   { href: "/admin/prices" as Route, label: "Giá cả", icon: Tags, roles: ["admin", "member"] },
   { href: "/admin/rounds" as Route, label: "Đợt giá", icon: Tags, roles: ["admin", "member"] },
   { href: "/admin/members" as Route, label: "Thành viên", icon: Users, roles: ["admin"] },

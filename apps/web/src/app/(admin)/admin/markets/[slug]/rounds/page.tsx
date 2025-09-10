@@ -116,7 +116,7 @@ export default function MarketRoundPage({ params }: { params: Promise<{ slug: st
     <div className="space-y-6">
       <Card>
         <CardHeader className="flex items-center justify-between">
-          <CardTitle>Đợt lấy giá – {market.name}</CardTitle>
+          <CardTitle>Đợt lấy giá - {market.name}</CardTitle>
           <div className="flex gap-2">
             <Input type="date" value={forDate} onChange={(e) => setForDate(e.target.value)} className="w-48" />
             {!round && (
@@ -173,7 +173,7 @@ export default function MarketRoundPage({ params }: { params: Promise<{ slug: st
                         </td>
                           <td className="px-4 py-2 text-right">
                             <Button size="sm" onClick={() => handleSubmit(pid)} disabled={!isToday}>
-                              {isToday ? 'Lưu' : 'Chờ tới ngày nhập'}
+                              {isToday ? 'Lưu' : 'Chỉ tại ngày nhập'}
                             </Button>
                           </td>
                         </tr>
@@ -227,3 +227,4 @@ export default function MarketRoundPage({ params }: { params: Promise<{ slug: st
     </div>
   );
 }
+

@@ -213,7 +213,7 @@ export default function RoundsPage() {
                           </td>
                           <td className="px-4 py-2 text-right">
                             <Button size="sm" onClick={() => handleSubmit(pid)} disabled={!isToday}>
-                              {isToday ? 'Lưu' : 'Chờ tới ngày nhập'}
+                              {isToday ? 'Lưu' : 'Chỉ tại ngày nhập'}
                             </Button>
                           </td>
                         </tr>
@@ -268,3 +268,4 @@ export default function RoundsPage() {
     </div>
   );
 }
+

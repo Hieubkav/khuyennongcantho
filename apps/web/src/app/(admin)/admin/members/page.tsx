@@ -19,7 +19,7 @@ export default function AdminMembersPage() {
   );
   const issueTempPassword = useAction(api.auth.issueTempPassword);
 
-  if (!profiles || !markets || (profiles && activeAssignments === undefined)) return <div>Dang t?i...</div>;
+  if (!profiles || !markets || (profiles && activeAssignments === undefined)) return <div>Đang tải...</div>;
 
   const marketNameById = new Map<string, string>(
     (markets as any).markets.map((m: any) => [String(m._id), m.name])

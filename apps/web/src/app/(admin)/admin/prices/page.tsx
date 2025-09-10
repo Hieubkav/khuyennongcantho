@@ -94,8 +94,6 @@ export default function AdminPricesPage() {
       return;
     }
 
-    // Allow any date - no validation on future dates
-
     try {
       await upsertPrice({
         marketId: marketId as any,
@@ -279,3 +277,4 @@ export default function AdminPricesPage() {
     </div>
   );
 }
+

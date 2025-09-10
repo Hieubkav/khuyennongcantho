@@ -107,7 +107,7 @@ export default function EditMarketPage({ params }: { params: Promise<{ slug: str
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
           <div>
-            <Label htmlFor="location">Địa điểm (tùy chọn)</Label>
+            <Label htmlFor="location">Địa điểm (tuỳ chọn)</Label>
             <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} />
           </div>
           <div className="flex items-center space-x-2">
@@ -117,7 +117,7 @@ export default function EditMarketPage({ params }: { params: Promise<{ slug: str
           <div className="flex gap-2">
             <Button type="submit">Lưu thay đổi</Button>
             <Button variant="outline" type="button" onClick={() => router.back()}>
-              Hủy
+              Huỷ
             </Button>
           </div>
         </form>
@@ -135,7 +135,7 @@ export default function EditMarketPage({ params }: { params: Promise<{ slug: str
             <div className="text-2xl font-semibold">{members ? (members as any[]).filter((m: any) => m.active).length : 0}</div>
           </div>
           <div>
-            <div className="text-sm text-muted-foreground">Số món hàng</div>
+            <div className="text-sm text-muted-foreground">Số mặt hàng</div>
             <div className="text-2xl font-semibold">{items ? (items as any[]).filter((x: any) => x.active).length : 0}</div>
           </div>
         </div>
@@ -241,5 +241,4 @@ export default function EditMarketPage({ params }: { params: Promise<{ slug: str
   </div>
 );
 }
-
 

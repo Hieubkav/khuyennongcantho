@@ -61,7 +61,7 @@ export const changePassword = action({
     if (args.newPassword.length < 6) throw new Error('Mật khẩu mới phải từ 6 ký tự');
     const user = await ctx.runQuery(apiAny.profiles.getSecretsByEmail, { email });
     if (!user) throw new Error('Không tìm thấy tài khoản');
-    if (!user.active) throw new Error('Tài khoản đã bị khóa');
+    if (!user.active) throw new Error('Tài khoản đã bị khoá');
     if (!user.passwordSalt || !user.passwordHash) throw new Error('Tài khoản chưa có mật khẩu');
 
     // Verify current password
@@ -105,3 +105,4 @@ export const issueTempPassword = action({
     return { password: raw };
   },
 });
+

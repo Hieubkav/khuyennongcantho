@@ -18,7 +18,7 @@ function MarketMetaCells({ marketId }: { marketId: any }) {
   const profile = useQuery(api.profiles.getById, manager ? ({ id: manager.profileId } as any) : ('skip' as any));
   const items = useQuery(apiAny.marketProducts.listByMarket, { marketId, active: true }) as any[] | undefined;
   const count = items ? items.length : 0;
-  const name = profile ? (profile.name ?? profile.email) : '—';
+  const name = profile ? (profile.name ?? profile.email) : '-';
   return (
     <>
       <td className="px-6 py-4 whitespace-nowrap">{name}</td>
