@@ -15,7 +15,7 @@ export default function AdminMarketsPage() {
   const deleteMarket = useMutation(api.markets.deleteMarket);
   const [selectedMarkets, setSelectedMarkets] = useState<Set<string>>(new Set());
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: any) => {
     try {
       await deleteMarket({ id });
       toast.success('Xóa chợ thành công');

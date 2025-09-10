@@ -27,7 +27,7 @@ export default function AdminProductsPage() {
     return m;
   }, [units]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: any) => {
     try {
       await deleteProduct({ id });
       toast.success('Xóa sản phẩm thành công');
