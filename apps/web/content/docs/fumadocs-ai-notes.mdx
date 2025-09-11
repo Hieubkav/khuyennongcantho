@@ -1,0 +1,70 @@
+---
+title: Lưu ý cho AI khi viết Fumadocs
+description: Quy tắc MDX an toàn, tránh lỗi acorn/Node khi tạo tài liệu
+---
+
+## Mục tiêu
+
+- Tránh các lỗi Build Error: "Error evaluating Node.js code" và "Could not parse expression with acorn".
+- Viết MDX theo chuẩn đơn giản, ổn định cho hệ thống docs (Fumadocs + Next.js).
+
+## Lỗi thường gặp (và cách tránh)
+
+- Dùng ngoặc nhọn/array trực tiếp trong văn bản làm MDX hiểu là biểu thức JS.
+  - Sai: Args: `{ id, name? }` (không bọc backticks) -> sẽ gây lỗi parse.
+  - Đúng: Args: `{ id, name? }` (bọc trong backticks) hoặc đặt trong khối code.
+- Viết mảng/object trong văn bản thường.
+  - Sai: Returns: `[{ ...product, unit }]` (không bọc backticks) -> sẽ gây lỗi.
+  - Đúng: Returns: `[{ ...product, unit }]` hoặc khối code.
+- Dùng JSX/Component không có sẵn trong theme hoặc chưa import.
+  - Ví dụ: viết `<Something/>` sẽ bị parse như component. Hãy bọc trong backticks.
+- Ký tự đặc biệt, font/encoding lạ.
+  - Hạn chế "ngoặc kép thông minh", mũi tên đặc biệt. Dùng ASCII đơn giản (", ->, -).
+  - Tiếng Việt có dấu vẫn OK; lỗi thường do ngoặc nhọn không bọc code, không phải do dấu.
+- Frontmatter không hợp lệ (phần đầu file giữa hai dòng ---).
+  - Chỉ để các cặp key: value dạng chuỗi đơn giản: title, description.
+  - Không chèn object/array vào frontmatter.
+
+## Quy tắc MDX an toàn (KISS)
+
+- Bọc mọi mẩu có `{}`, `[]`, `<>` trong code inline bằng backticks, ví dụ: `{ id }`.
+- Với đoạn dài, dùng khối code 3 dấu backtick (fenced code block) và chỉ định ngôn ngữ nếu cần (ví dụ: ts, json).
+- Dùng danh sách gạch đầu dòng đơn giản, không lồng quá sâu.
+- Không chèn JS/TS động trong MDX (ví dụ: `{items.map(...)}`); tài liệu nên tĩnh.
+- Giữ nội dung thuần Markdown; chỉ dùng component có sẵn trong theme.
+
+## Mẫu chuẩn đề xuất
+
+Frontmatter mẫu:
+
+```
+---
+title: Tên trang
+description: Mô tả ngắn gọn
+---
+```
+
+Nội dung mẫu:
+
+- Args: `{ id, name? }`
+- Returns: `[{ _id, name }]`
+
+```ts
+// Khối code ví dụ (nếu cần)
+type CreateArgs = { name: string; note?: string };
+```
+
+## Checklist trước khi commit
+
+- File có frontmatter mở/đóng bằng `---` đầy đủ.
+- Không còn `{}`, `[]`, `<>` trần trong văn bản (đã bọc backticks).
+- Không dùng JSX lạ; nếu có, chắc chắn component tồn tại.
+- Dùng ASCII cho ký hiệu đặc biệt (-> thay vì mũi tên đặc biệt). Tiếng Việt có dấu vẫn OK.
+- Build thử cục bộ: chạy dev server và mở trang docs vừa thêm/sửa.
+
+## Khắc phục nhanh khi gặp lỗi
+
+- Xác định dòng báo lỗi trong log (số dòng + file MDX).
+- Kiểm tra có ký tự `{`, `}`, `[`, `]`, `<`, `>` nằm ngoài backticks không.
+- Tạm thời bọc toàn bộ đoạn có ký tự đặc biệt vào khối code để loại trừ nguyên nhân.
+- Nếu file có nhiều biểu tượng đặc biệt, thay bằng ASCII trước, rồi thêm dần lại.

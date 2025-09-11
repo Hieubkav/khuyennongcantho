@@ -1,0 +1,179 @@
+---
+title: Backend API (Convex)
+description: Danh sách hàm theo bảng, KISS, args và kết quả
+---
+
+## Tổng quan
+
+- Kiến trúc KISS, realtime Convex.
+- Mỗi nhóm (module) tương ứng 1 file trong `packages/backend/convex/*`.
+- Đầu vào/ra: ghi ngắn gọn; FE dùng `api.<module>.<function>` từ Convex codegen.
+
+## members.ts
+
+- create: Tạo member mới
+  - Args: `{ username, passwordHash, name, phone?, order?, active? }`
+  - Returns: `member`
+  - Ghi chú: kiểm tra unique username.
+- updateProfile: Cập nhật tên/phone
+  - Args: `{ id, name?, phone? }`
+  - Returns: `member`
+- changePassword: Đổi mật khẩu
+  - Args: `{ id, passwordHash }`
+  - Returns: `{ success }`
+- toggleActive: Ẩn/hiện member
+  - Args: `{ id, active }`
+  - Returns: `{ success }`
+- listBrief: Danh sách rút gọn
+  - Args: `{ activeOnly? }`
+  - Returns: `[{ _id, name, username, phone, active, order }]`
+- getFull: Chi tiết member + quan hệ
+  - Args: `{ id, recentLimit? }`
+  - Returns: `{ member, assignedMarkets, recentSurveys }`
+- markets: Các chợ được phân công
+  - Args: `{ memberId, activeOnly? }`
+  - Returns: `markets[]` (rút gọn)
+- surveysInRange: Survey của member theo ngày
+  - Args: `{ memberId, fromDay, toDay }`
+  - Returns: `surveys[]`
+
+## markets.ts
+
+- create: Tạo chợ
+  - Args: `{ name, addressJson, order?, active? }`
+  - Returns: `market`
+- update: Cập nhật chợ
+  - Args: `{ id, name?, addressJson? }`
+  - Returns: `market`
+- toggleActive: Ẩn/hiện chợ
+  - Args: `{ id, active }`
+  - Returns: `{ success }`
+- reorder: Cập nhật thứ tự hàng loạt
+  - Args: `{ items: [{ id, order }] }`
+  - Returns: `{ success }`
+- listBrief: Danh sách rút gọn
+  - Args: `{ activeOnly? }`
+  - Returns: `markets[]` (rút gọn)
+- getFull: Chi tiết chợ + quan hệ
+  - Args: `{ id, recentLimit? }`
+  - Returns: `{ market, assignedMembers, recentSurveys }`
+
+## assignments.ts (phân công)
+
+- assign: Gán member vào chợ (idempotent)
+  - Args: `{ marketId, memberId }`
+  - Returns: `assignment`
+- unassign: Gỡ phân công
+  - Args: `{ marketId, memberId }`
+  - Returns: `{ success }`
+- listByMarket: Danh sách member theo chợ
+  - Args: `{ marketId }`
+  - Returns: `members[]`
+- listByMember: Danh sách chợ theo member
+  - Args: `{ memberId }`
+  - Returns: `markets[]`
+
+## units.ts (đơn vị)
+
+- listBrief: Danh sách đơn vị
+  - Args: `{ activeOnly? }`
+  - Returns: `units[]` (sắp theo order)
+- create: Tạo đơn vị
+  - Args: `{ name, abbr?, order? }`
+  - Returns: `unit` (unique name)
+- update: Sửa đơn vị
+  - Args: `{ id, name?, abbr? }`
+  - Returns: `unit`
+- toggleActive: Ẩn/hiện đơn vị
+  - Args: `{ id, active }`
+  - Returns: `{ success }`
+- safeDelete: Xóa an toàn (chỉ khi không có sản phẩm tham chiếu)
+  - Args: `{ id }`
+  - Returns: `{ success }` | Error nếu còn sản phẩm dùng
+
+## products.ts (sản phẩm)
+
+- listBrief: Danh sách sản phẩm
+  - Args: `{ activeOnly? }`
+  - Returns: `products[]` (theo order)
+- listWithUnits: Danh sách sản phẩm kèm đơn vị
+  - Args: `{ activeOnly? }`
+  - Returns: `[{ ...product, unit }]`
+- create: Tạo sản phẩm
+  - Args: `{ name, unitId, note?, order? }`
+  - Returns: `product` (unique name)
+- update: Sửa sản phẩm
+  - Args: `{ id, name?, unitId?, note? }`
+  - Returns: `product`
+- toggleActive: Ẩn/hiện sản phẩm
+  - Args: `{ id, active }`
+  - Returns: `{ success }`
+- safeDelete: Xóa an toàn (nếu không có surveyItems tham chiếu)
+  - Args: `{ id }`
+  - Returns: `{ success }` | Error nếu đang được tham chiếu
+- reorder: Cập nhật thứ tự hàng loạt
+  - Args: `{ items: [{ id, order }] }`
+  - Returns: `{ success }`
+
+## surveys.ts (phiên khảo sát)
+
+- createForMarket: Tạo survey cho chợ + sinh items
+  - Args: `{ marketId, memberId, surveyDay?, note?, copyFromPrevious? }`
+  - Returns: `survey`
+  - Ghi chú: sinh item từ products đang active theo `order`; có thể copy giá từ survey gần nhất cùng chợ.
+- getFull: Lấy survey + items (expand product/unit)
+  - Args: `{ id }`
+  - Returns: `{ survey, market, member, items[] }`
+- listMineByRange: Danh sách survey của tôi theo ngày
+  - Args: `{ memberId, fromDay, toDay }`
+  - Returns: `surveys[]` (mới nhất trước)
+- deleteCascade: Xóa survey và toàn bộ items
+  - Args: `{ id }`
+  - Returns: `{ success }`
+- lastInMarket: Survey gần nhất của chợ
+  - Args: `{ marketId }`
+  - Returns: `survey | null`
+- countFilled: Đếm số dòng đã nhập giá
+  - Args: `{ id }`
+  - Returns: `{ filled, total }`
+
+## surveyItems.ts (dòng khảo sát)
+
+- autosave: Lưu giá/note từng dòng (cập nhật lastUpdatedAt)
+  - Args: `{ id, price?, note? }`
+  - Returns: `{ success }`
+- listWithProductUnit: Danh sách items + product/unit
+  - Args: `{ surveyId }`
+  - Returns: `items[]` (đã expand)
+- clearPrice: Xóa giá một dòng
+  - Args: `{ id }`
+  - Returns: `{ success }`
+- bulkClear: Xóa giá nhiều dòng hoặc toàn bộ
+  - Args: `{ surveyId, productIds? }`
+  - Returns: `{ success }`
+
+## reports.ts (báo cáo snapshot)
+
+- summaryByMarketRange: Tổng hợp live theo khoảng ngày (không lưu)
+  - Args: `{ fromDay, toDay }`
+  - Returns: `{ summaryRows, includedSurveyIds }`
+- generateRange: Tạo báo cáo snapshot bất biến
+  - Args: `{ fromDay, toDay, createdByAdminId }`
+  - Returns: `report`
+- listBrief: Danh sách báo cáo gần đây
+  - Args: `{ limit? }`
+  - Returns: `[{ _id, fromDay, toDay, generatedAt }]`
+- getFull: Chi tiết báo cáo
+  - Args: `{ id }`
+  - Returns: `report`
+
+## Gợi ý dùng FE
+
+- /khaosat:
+  - Lấy chợ được phân công: `members.markets` -> nút "Tạo khảo sát".
+  - Tạo survey: `surveys.createForMarket` -> mở `surveys.getFull` để hiển thị form.
+  - Autosave: `surveyItems.autosave` (debounce ~300ms).
+  - Lịch sử: `surveys.listMineByRange`.
+- /admin:
+  - Danh mục: units/products/markets CRUD + assignments.
+  - Tổng hợp: `reports.summaryByMarketRange` -> ấn "Xuất" = `reports.generateRange`.
