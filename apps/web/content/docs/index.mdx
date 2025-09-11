@@ -1,14 +1,96 @@
 ---
-title: Hello World
-description: Your first document
+title: Lấy giá chợ — Đặc tả KISS
+description: Mô hình dữ liệu, luồng thao tác, ràng buộc và gợi ý triển khai
 ---
 
-Welcome to the docs! You can start writing documents in `/content/docs`.
+## Mục tiêu & nguyên tắc
 
-## What is Next?
+- Đơn giản tuyệt đối (KISS), thân thiện người lớn tuổi, dùng trên điện thoại.
+- Tạo khảo sát 1 chạm, autosave realtime (Convex), không bắt thao tác thừa.
+- Quản trị gọn: lọc theo khoảng ngày, tổng hợp theo chợ, xuất báo cáo snapshot (bất biến).
 
-<Cards>
-  <Card title="Learn more about Next.js" href="https://nextjs.org/docs" />
-  <Card title="Learn more about Fumadocs" href="https://fumadocs.vercel.app" />
-</Cards>
+## Tuyến đường & vai trò
+
+- `/khaosat` (Member): đăng nhập nội bộ; vào là thấy chợ được phân công; bấm tạo khảo sát là có form đầy đủ sản phẩm; điền tới đâu lưu tới đó; xem/sửa/xóa bất kỳ lúc nào.
+- `/admin` (Admin): quản lý danh mục (Chợ, Đơn vị, Sản phẩm), phân công; lọc khảo sát theo ngày; xem tổng hợp theo chợ; tạo báo cáo snapshot để lưu trữ/xuất file sau này.
+
+## Mô hình dữ liệu
+
+Ghi chú chung: mọi bảng đều có `order: number` (sắp xếp) và `active: boolean` (ẩn/hiện). Convex tự có `_id`, `_creationTime`.
+
+- Admins
+  - `username`, `passwordHash`, `name`, `phone`, `order`, `active`.
+- Members
+  - `username`, `passwordHash`, `name`, `phone`, `order`, `active`.
+- Markets (Chợ)
+  - `name`.
+  - `addressJson`: `{ provinceCode, districtCode, wardCode, detail }` (FE dùng danh mục tỉnh/thành VN dạng JSON để chọn; BE lưu code + chi tiết).
+  - `order`, `active`.
+- MarketAssignments (Phân công)
+  - `marketId`, `memberId`, `order`, `active`.
+- Units (Đơn vị)
+  - `name`, `abbr`, `order`, `active`.
+- Products (Sản phẩm — dùng chung)
+  - `name` (unique), `unitId`, `note`, `order`, `active`.
+- Surveys (Phiên khảo sát)
+  - `marketId`, `memberId`.
+  - `surveyDay`: chuỗi `YYYY-MM-DD` theo múi giờ `Asia/Ho_Chi_Minh`.
+  - `note`, `lastUpdatedAt` (ms), `order`, `active`.
+  - Không có trạng thái, không có bộ đếm (FE tự suy ra “đã đủ”).
+- SurveyItems (Dòng khảo sát)
+  - `surveyId`, `productId`.
+  - `price: number | null` (để trống nếu không lấy được), `note`.
+  - `order` (copy từ `product.order` để hiển thị cố định), `active`.
+- Reports (Báo cáo snapshot — bất biến)
+  - `fromDay`, `toDay`, `generatedAt`, `createdByAdminId`.
+  - `summaryRows`: mảng snapshot đã tổng hợp theo chợ: `{ marketId, marketName, memberNames, surveyCount, filledCount }`.
+  - `includedSurveyIds: string[]`, `order`, `active`.
+
+## Ràng buộc & quy ước
+
+- Đơn vị (Units): không cho xóa nếu còn sản phẩm dùng; nếu muốn ngừng dùng → đặt `active=false`.
+- Sản phẩm (Products): tên unique; khi `active=false` thì survey mới KHÔNG sinh item cho sản phẩm đó (giữ lịch sử survey cũ).
+- Tạo Survey: sinh ngay toàn bộ `SurveyItems` cho các `Products` đang active để người lớn tuổi thấy đủ dòng, dễ điền.
+- Giá: BE lưu số thuần; FE lo format nhập/hiển thị kiểu `1.000.000`. Bỏ trống giá là hợp lệ.
+- Báo cáo (Reports): snapshot bất biến, tạo xong không thay đổi dù dữ liệu gốc sửa sau này.
+
+## Index đề xuất (tối thiểu)
+
+- Admins/Members: by `username` (unique).
+- Markets: by `active`, by `name`.
+- MarketAssignments: by `memberId`, by `marketId`.
+- Units: by `name` (unique).
+- Products: by `active`, by `name` (unique), by `unitId`.
+- Surveys: by `surveyDay`, by `marketId`, by `memberId`.
+- SurveyItems: by `surveyId`.
+- Reports: by `generatedAt` (cần thì thêm `fromDay+toDay`).
+
+## Luồng thao tác
+
+### Member (/khaosat)
+
+- Đăng nhập nội bộ (username/password).
+- Vào là thấy danh sách chợ được phân công; mỗi chợ một nút “Tạo khảo sát”.
+- Tạo survey → sinh item theo toàn bộ sản phẩm active; autosave debounce ~300ms; hiện “Đã lưu lúc hh:mm”.
+- Xem danh sách survey của tôi (mới nhất lên đầu), có thể sửa/xóa bất kỳ lúc nào.
+
+### Admin (/admin)
+
+- Quản lý danh mục: Markets (địa chỉ JSON), Units, Products; phân công MarketAssignments.
+- Lọc khoảng ngày `[fromDay, toDay]` → tổng hợp theo chợ (Tên chợ, người khảo sát, số bảng, số bảng “đã đủ”).
+- Nút “Xuất báo cáo” → tạo `Reports` snapshot (summaryRows + includedSurveyIds).
+
+## Gợi ý thêm (tùy bật/tắt)
+
+- Gợi ý giá: khi tạo survey mới tại cùng chợ, copy giá từ survey gần nhất làm mặc định để sửa nhanh.
+- Tìm nhanh sản phẩm: ô search/scroll sticky theo alphabet để người lớn tuổi dễ tìm.
+- Hành động nhanh: nút “Xóa giá dòng”/“Xóa mọi giá” (có xác nhận lớn, rõ ràng).
+- Mobile-first: shadcn/ui + Tailwind + lucide-react; chữ to, khoảng cách rộng, 1–2 thao tác là xong.
+- Timezone cố định `Asia/Ho_Chi_Minh`; chuẩn hóa `surveyDay` theo ngày địa phương để lọc chính xác.
+
+## Bước tiếp theo
+
+- Triển khai `packages/backend/convex/schema.ts` đúng mô hình trên (kèm `order`, `active`, index).
+- Viết mutation/query cốt lõi: CRUD danh mục, phân công; tạo survey (sinh items); autosave item; tổng hợp theo ngày; tạo snapshot báo cáo.
+
 
