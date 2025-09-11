@@ -1,5 +1,5 @@
 {
-	"name": "khuyennong-cantho",
+	"name": "dohy",
 	"private": true,
 	"workspaces": [
 		"apps/*",
@@ -15,10 +15,7 @@
 		"dev:server": "turbo -F @dohy/backend dev",
 		"dev:setup": "turbo -F @dohy/backend dev:setup"
 	},
-	"dependencies": {
-		"axios": "^1.11.0",
-		"cheerio": "^1.1.2"
-	},
+	"dependencies": {},
 	"devDependencies": {
 		"turbo": "^2.5.4",
 		"oxlint": "^1.12.0"
