@@ -1,0 +1,114 @@
+---
+title: Pattern CRUD Đơn vị (Units)
+description: Ghi chú quy ước khi triển khai Units với Convex + Next, an toàn MDX cho AI
+---
+
+## Mục tiêu
+
+- Chuẩn hoá cách làm CRUD cho đơn vị tính (Units) từ backend đến frontend.
+- Tái sử dụng nhanh cho module danh mục tương tự (name, abbr, order, active).
+- Tuân thủ quy tắc MDX an toàn như trong `fumadocs-ai-notes.mdx`.
+
+## Mô hình dữ liệu Units
+
+- Trường chính: `name`, `abbr?`, `order`, `active`.
+- Index nên có: `by_name` (unique kiểm tra trong code), `by_active`.
+- Mọi bảng đều có `order: number` và `active: boolean` để sắp xếp/ẩn hiện.
+
+```ts
+// packages/backend/convex/schema.ts (trích)
+// units: defineTable({ name: v.string(), abbr: v.optional(v.string()), order: v.number(), active: v.boolean() })
+//   .index("by_name", ["name"]).index("by_active", ["active"])
+```
+
+## Backend (Convex) patterns
+
+- File: `packages/backend/convex/units.ts`.
+- Hàm chuẩn cần có:
+  - `listBrief`: trả danh sách rút gọn, sắp theo `order`.
+  - `create`: tạo đơn vị mới, kiểm tra trùng tên theo `by_name`.
+  - `update`: cập nhật `name?`, `abbr?`, `order?`, `active?`.
+  - `toggleActive`: bật/tắt nhanh `active`.
+  - `safeDelete`: xoá an toàn, chặn nếu còn `products` tham chiếu qua `unitId`.
+  - `reorder`: cập nhật hàng loạt `order` để lưu kết quả kéo‑thả.
+
+```ts
+// Reorder mẫu
+export const reorder = mutation({
+  args: { items: v.array(v.object({ id: v.id("units"), order: v.number() })) },
+  handler: async (ctx, args) => {
+    for (const it of args.items) await ctx.db.patch(it.id, { order: it.order });
+    return { success: true };
+  },
+});
+```
+
+## Frontend patterns (Next + Convex React)
+
+- Trang danh sách: `apps/web/src/app/(dashboard)/units/page.tsx`.
+  - Data: `useQuery(api.units.listBrief, {})`.
+  - Hành động: `useMutation(api.units.toggleActive)`, `useMutation(api.units.safeDelete)`, `useMutation(api.units.reorder)`.
+  - Tính năng UI:
+    - Tìm kiếm theo `name`/`abbr` (client‑side).
+    - Lọc trạng thái: `Tất cả`, `Đang dùng` (`active=true`), `Tạm tắt` (`active=false`).
+    - Sắp xếp theo tên: bấm tiêu đề cột “Tên” để `asc/desc`.
+    - Sắp xếp theo thứ tự: bấm tiêu đề cột “Thứ tự” để trở về chế độ theo `order`.
+    - Kéo‑thả để đổi `order` và lưu bằng `api.units.reorder`.
+      - Chỉ bật kéo‑thả khi: không có từ khoá tìm kiếm, đang xem “Thứ tự”, bộ lọc = `Tất cả`.
+    - Bật/Tắt nhanh trạng thái ngay trên list bằng `toggleActive`.
+
+```ts
+// Gọi Convex trong FE
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@dohy/backend/convex/_generated/api";
+
+const units = useQuery(api.units.listBrief, {});
+const toggleActive = useMutation(api.units.toggleActive);
+const safeDelete = useMutation(api.units.safeDelete);
+const reorder = useMutation(api.units.reorder);
+
+// Ví dụ bật/tắt
+await toggleActive({ id: unitId as any, active: true });
+
+// Ví dụ lưu kéo‑thả
+await reorder({ items: localList.map((u, idx) => ({ id: u._id as any, order: idx })) });
+```
+
+- Trang tạo mới: `apps/web/src/app/(dashboard)/units/new/page.tsx`.
+  - Form: `name` (bắt buộc), `abbr?`, `order`.
+  - Gọi `useMutation(api.units.create)` và điều hướng về `/units` khi thành công.
+
+```ts
+await create({ name, abbr: abbr || undefined, order });
+```
+
+- Trang chỉnh sửa: `apps/web/src/app/(dashboard)/units/[id]/edit/unit-edit.client.tsx`.
+  - Nạp từ `listBrief` để lấy record theo `_id`.
+  - Cập nhật qua `useMutation(api.units.update)` với `name?`, `abbr?`, `order?`.
+
+```ts
+await update({ id: _id as any, name, abbr: abbr || undefined, order });
+```
+
+## Quy ước UX nhanh
+
+- Trạng thái hiển thị: “Đang dùng” khi `active=true`, “Tạm tắt” khi `active=false`.
+- Nút nhanh: “Kích hoạt” khi đang tắt, “Tắt” khi đang dùng.
+- Xoá: dùng `safeDelete`; nếu còn `products` tham chiếu, hiển thị thông báo lỗi rõ ràng.
+
+## Checklist tạo CRUD danh mục tương tự
+
+1) Schema: thêm bảng có `name`, `order`, `active` (và `abbr?` nếu cần) + index `by_name`, `by_active`.
+2) Backend module: thêm `listBrief`, `create`, `update`, `toggleActive`, `safeDelete`, `reorder`.
+3) FE pages:
+   - List: bảng có tìm kiếm, lọc trạng thái, sort theo tên, kéo‑thả theo `order`, bật/tắt nhanh.
+   - New/Edit: form đơn giản với `Card + Input + Label + Button`.
+4) Kết nối Convex: `useQuery/useMutation` dùng `@dohy/backend/convex/_generated/api`.
+5) Thử nhanh: chạy dev cho Convex để generate `_generated` và kiểm tra trang `/units`.
+
+## Lưu ý MDX an toàn (theo fumadocs-ai-notes.mdx)
+
+- Bọc mọi ký tự đặc biệt trong code inline bằng backticks: ví dụ `[{ id, order }]`, `{ name?, abbr? }`.
+- Đưa ví dụ vào khối code 3 dấu backtick để tránh lỗi parse.
+- Không nhúng JSX lạ vào MDX; chỉ nội dung Markdown + code block.
+
