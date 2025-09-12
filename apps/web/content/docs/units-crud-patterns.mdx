@@ -74,6 +74,24 @@ await toggleActive({ id: unitId as any, active: true });
 await reorder({ items: localList.map((u, idx) => ({ id: u._id as any, order: idx })) });
 ```
 
+- Điều hướng (Sidebar + TopNav) cần cập nhật khi thêm module mới để tránh quên:
+
+```ts
+// apps/web/src/app/(dashboard)/layout.tsx
+// Thêm link vào mảng `links`
+const links = [
+  { title: "Overview", href: "/dashboard" },
+  { title: "Products", href: "/products" }, // ví dụ module mới
+  { title: "Units", href: "/units" },
+];
+```
+
+```ts
+// apps/web/src/components/layout/data/sidebar-data.ts
+// Thêm item vào nhóm phù hợp (ví dụ nhóm General)
+{ title: 'Products', url: '/products', icon: Package }
+```
+
 - Trang tạo mới: `apps/web/src/app/(dashboard)/units/new/page.tsx`.
   - Form: `name` (bắt buộc), `abbr?`, `order`.
   - Gọi `useMutation(api.units.create)` và điều hướng về `/units` khi thành công.
@@ -105,10 +123,12 @@ await update({ id: _id as any, name, abbr: abbr || undefined, order });
    - New/Edit: form đơn giản với `Card + Input + Label + Button`.
 4) Kết nối Convex: `useQuery/useMutation` dùng `@dohy/backend/convex/_generated/api`.
 5) Thử nhanh: chạy dev cho Convex để generate `_generated` và kiểm tra trang `/units`.
+6) Cập nhật điều hướng:
+   - TopNav: sửa `apps/web/src/app/(dashboard)/layout.tsx` để thêm link vào `links`.
+   - Sidebar: sửa `apps/web/src/components/layout/data/sidebar-data.ts` để thêm item vào nhóm phù hợp.
 
 ## Lưu ý MDX an toàn (theo fumadocs-ai-notes.mdx)
 
 - Bọc mọi ký tự đặc biệt trong code inline bằng backticks: ví dụ `[{ id, order }]`, `{ name?, abbr? }`.
 - Đưa ví dụ vào khối code 3 dấu backtick để tránh lỗi parse.
 - Không nhúng JSX lạ vào MDX; chỉ nội dung Markdown + code block.
-

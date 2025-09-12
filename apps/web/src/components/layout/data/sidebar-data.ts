@@ -39,10 +39,9 @@ export const sidebarData: SidebarData = {
     {
       title: 'General',
       items: [
-        { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
-        { title: 'Units', url: '/units', icon: ListTodo },
-        { title: 'Apps', url: '/apps', icon: Package },
-        { title: 'Chats', url: '/chats', badge: '3', icon: MessagesSquare },
+        { title: 'Tổng quan', url: '/dashboard', icon: LayoutDashboard },
+        { title: 'Sản phẩm', url: '/products', icon: Package },
+        { title: 'Đơn vị', url: '/units', icon: ListTodo },
         { title: 'Users', url: '/users', icon: Users },
       ],
     },
@@ -89,4 +88,3 @@ export const sidebarData: SidebarData = {
     },
   ],
 }
-

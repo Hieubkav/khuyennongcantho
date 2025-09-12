@@ -8,9 +8,9 @@ import { ProfileDropdown } from "@/components/profile-dropdown";
 
 export default function DashboardGroupLayout({ children }: { children: React.ReactNode }) {
   const links = [
-    { title: "Overview", href: "/dashboard" },
-    { title: "Units", href: "/units" },
-    { title: "Reports", href: "/dashboard/reports", disabled: true },
+    { title: "Tổng quan", href: "/dashboard" },
+    { title: "Sản phẩm", href: "/products" },
+    { title: "Đơn vị", href: "/units" },
   ];
 
   return (

@@ -55,12 +55,21 @@ export const create = mutation({
 });
 
 export const update = mutation({
-  args: { id: v.id("products"), name: v.optional(v.string()), unitId: v.optional(v.id("units")), note: v.optional(v.string()) },
+  args: {
+    id: v.id("products"),
+    name: v.optional(v.string()),
+    unitId: v.optional(v.id("units")),
+    note: v.optional(v.string()),
+    order: v.optional(v.number()),
+    active: v.optional(v.boolean()),
+  },
   handler: async (ctx, args) => {
     const patch: Record<string, any> = {};
     if (args.name !== undefined) patch.name = args.name;
     if (args.unitId !== undefined) patch.unitId = args.unitId;
     if (args.note !== undefined) patch.note = args.note;
+    if (args.order !== undefined) patch.order = args.order;
+    if (args.active !== undefined) patch.active = args.active;
     await ctx.db.patch(args.id, patch);
     return await ctx.db.get(args.id);
   },
