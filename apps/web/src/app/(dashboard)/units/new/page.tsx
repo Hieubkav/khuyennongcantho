@@ -25,7 +25,7 @@ export default function UnitCreatePage() {
       setSaving(true);
       await create({ name, abbr: abbr || undefined, order });
       toast.success("Đã tạo đơn vị");
-      router.push("/units");
+      router.push("/dashboard/units");
     } catch (err: any) {
       toast.error(err?.message ?? "Tạo thất bại");
     } finally {
@@ -61,7 +61,7 @@ export default function UnitCreatePage() {
           </CardContent>
           <CardFooter className="flex items-center justify-end gap-2">
             <Button type="button" variant="ghost" asChild>
-              <Link href="/units">Hủy</Link>
+              <Link href="/dashboard/units">Hủy</Link>
             </Button>
             <Button type="submit" disabled={saving}>{saving ? "Đang lưu..." : "Lưu"}</Button>
           </CardFooter>

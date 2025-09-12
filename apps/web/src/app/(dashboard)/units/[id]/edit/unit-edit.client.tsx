@@ -50,7 +50,7 @@ export default function UnitEditClient({ id }: { id: string }) {
   if (!current) {
     return (
       <div className="text-sm text-muted-foreground">
-        Không tìm thấy. Quay lại <Link className="underline" href="/units">danh sách</Link>.
+        Không tìm thấy. Quay lại <Link className="underline" href="/dashboard/units">danh sách</Link>.
       </div>
     );
   }
@@ -83,7 +83,7 @@ export default function UnitEditClient({ id }: { id: string }) {
           </CardContent>
           <CardFooter className="flex items-center justify-end gap-2">
             <Button type="button" variant="ghost" asChild>
-              <Link href="/units">Hủy</Link>
+              <Link href="/dashboard/units">Hủy</Link>
             </Button>
             <Button type="submit" disabled={saving}>{saving ? "Đang lưu..." : "Lưu"}</Button>
           </CardFooter>

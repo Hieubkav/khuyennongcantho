@@ -124,7 +124,7 @@ export default function UnitsListPage() {
             />
           </div>
           <Button asChild>
-            <Link href="/units/new">
+            <Link href="/dashboard/units/new">
               <Plus className="mr-2 h-4 w-4" /> Thêm mới
             </Link>
           </Button>
@@ -226,7 +226,7 @@ export default function UnitsListPage() {
                           {u.active ? "Tắt" : "Kích hoạt"}
                         </Button>
                         <Button size="sm" variant="outline" asChild>
-                          <Link href={`/units/${u._id}/edit`}>
+                          <Link href={`/dashboard/units/${u._id}/edit`}>
                             <Edit className="mr-2 h-4 w-4" /> Sửa
                           </Link>
                         </Button>

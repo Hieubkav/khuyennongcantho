@@ -29,7 +29,7 @@ export default function ProductCreatePage() {
       setSaving(true);
       await create({ name, unitId: unitId as any, note: note || undefined, order });
       toast.success("Đã tạo sản phẩm");
-      router.push("/products");
+      router.push("/dashboard/products");
     } catch (err: any) {
       toast.error(err?.message ?? "Tạo thất bại");
     } finally {
@@ -79,7 +79,7 @@ export default function ProductCreatePage() {
           </CardContent>
           <CardFooter className="flex items-center justify-end gap-2">
             <Button type="button" variant="ghost" asChild>
-              <Link href="/products">Hủy</Link>
+              <Link href="/dashboard/products">Hủy</Link>
             </Button>
             <Button type="submit" disabled={saving}>
               {saving ? "Đang lưu..." : "Lưu"}
@@ -90,4 +90,3 @@ export default function ProductCreatePage() {
     </div>
   );
 }
-

@@ -52,7 +52,7 @@ export default function ProductEditClient({ id }: { id: string }) {
   if (!current) {
     return (
       <div className="text-sm text-muted-foreground">
-        Không tìm thấy. Quay lại <Link className="underline" href="/products">danh sách</Link>.
+        Không tìm thấy. Quay lại <Link className="underline" href="/dashboard/products">danh sách</Link>.
       </div>
     );
   }
@@ -99,7 +99,7 @@ export default function ProductEditClient({ id }: { id: string }) {
           </CardContent>
           <CardFooter className="flex items-center justify-end gap-2">
             <Button type="button" variant="ghost" asChild>
-              <Link href="/products">Hủy</Link>
+              <Link href="/dashboard/products">Hủy</Link>
             </Button>
             <Button type="submit" disabled={saving}>{saving ? "Đang lưu..." : "Lưu"}</Button>
           </CardFooter>
@@ -108,4 +108,3 @@ export default function ProductEditClient({ id }: { id: string }) {
     </div>
   );
 }
-

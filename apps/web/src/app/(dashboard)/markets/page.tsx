@@ -9,13 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BadgeCheck, Edit, Plus, Search, Trash2, GripVertical, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
+import { addressLabel } from "@/lib/vn-locations";
 
-export default function ProductsListPage() {
+export default function MarketsListPage() {
   const [q, setQ] = useState("");
-  const products = useQuery(api.products.listWithUnits, {});
-  const doDelete = useMutation(api.products.safeDelete);
-  const toggleActive = useMutation(api.products.toggleActive);
-  const doReorder = useMutation(api.products.reorder);
+  const markets = useQuery(api.markets.listBrief, {});
+  const toggleActive = useMutation(api.markets.toggleActive);
+  const doReorder = useMutation(api.markets.reorder);
 
   const [list, setList] = useState<any[] | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
@@ -24,18 +24,26 @@ export default function ProductsListPage() {
   const allowDrag = !q.trim() && sortBy === "order" && statusFilter === "all";
 
   useEffect(() => {
-    if (products) setList(products);
+    if (markets) setList(markets);
     else setList(undefined);
-  }, [products]);
+  }, [markets]);
 
   const filtered = useMemo(() => {
     if (!list) return undefined;
     let base = !q
       ? list
-      : list.filter((p) => [p.name, p.unit?.name ?? "", p.unit?.abbr ?? ""].some((t) => t.toLowerCase().includes(q.toLowerCase())));
+      : list.filter((m) => {
+          const addr = addressLabel(
+            m.addressJson?.provinceCode,
+            m.addressJson?.districtCode,
+            m.addressJson?.wardCode,
+            m.addressJson?.detail
+          );
+          return [m.name, addr].some((t) => (t || "").toLowerCase().includes(q.toLowerCase()));
+        });
     if (statusFilter !== "all") {
       const wantActive = statusFilter === "active";
-      base = base.filter((p) => !!p.active === wantActive);
+      base = base.filter((m) => !!m.active === wantActive);
     }
     if (sortBy === "name") {
       const sorted = [...base].sort((a, b) => {
@@ -48,15 +56,6 @@ export default function ProductsListPage() {
     }
     return base;
   }, [q, list, sortBy, sortDir, statusFilter]);
-
-  const onDelete = async (id: string, name: string) => {
-    try {
-      await doDelete({ id: id as any });
-      toast.success(`Đã xóa sản phẩm: ${name}`);
-    } catch (err: any) {
-      toast.error(err?.message ?? "Xóa thất bại (có thể đang được tham chiếu)");
-    }
-  };
 
   const onToggle = async (id: string, next: boolean) => {
     try {
@@ -75,13 +74,13 @@ export default function ProductsListPage() {
 
   const onDropReorder = async (sourceId: string, targetId: string) => {
     if (!list || !allowDrag) return;
-    const from = list.findIndex((p) => String(p._id) === String(sourceId));
-    const to = list.findIndex((p) => String(p._id) === String(targetId));
+    const from = list.findIndex((m) => String(m._id) === String(sourceId));
+    const to = list.findIndex((m) => String(m._id) === String(targetId));
     if (from < 0 || to < 0 || from === to) return;
     const newList = arrayMove(list, from, to);
     setList(newList);
     try {
-      await doReorder({ items: newList.map((p, idx) => ({ id: p._id as any, order: idx })) });
+      await doReorder({ items: newList.map((m, idx) => ({ id: m._id as any, order: idx })) });
     } catch (err: any) {
       toast.error(err?.message ?? "Sắp xếp thất bại");
     }
@@ -103,7 +102,7 @@ export default function ProductsListPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-xl font-semibold">Sản phẩm</h2>
+        <h2 className="text-xl font-semibold">Chợ</h2>
         <div className="flex items-center gap-2">
           <div className="hidden sm:flex items-center gap-1 rounded-md border p-1">
             <Button size="sm" variant={statusFilter === "all" ? "default" : "ghost"} onClick={() => setStatusFilter("all")}>Tất cả</Button>
@@ -120,7 +119,7 @@ export default function ProductsListPage() {
             />
           </div>
           <Button asChild>
-            <Link href="/dashboard/products/new">
+            <Link href="/dashboard/markets/new">
               <Plus className="mr-2 h-4 w-4" /> Thêm mới
             </Link>
           </Button>
@@ -129,7 +128,7 @@ export default function ProductsListPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Danh sách sản phẩm</CardTitle>
+          <CardTitle>Danh sách chợ</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -156,7 +155,7 @@ export default function ProductsListPage() {
                       )}
                     </button>
                   </th>
-                  <th className="py-2 pr-4">Đơn vị</th>
+                  <th className="py-2 pr-4">Địa chỉ</th>
                   <th className="py-2 pr-4">
                     <button
                       type="button"
@@ -172,13 +171,13 @@ export default function ProductsListPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered?.map((p) => (
+                {filtered?.map((m) => (
                   <tr
-                    key={p._id}
+                    key={m._id}
                     className="border-b last:border-0"
                     draggable={allowDrag}
                     onDragStart={(e) => {
-                      e.dataTransfer.setData("text/plain", String(p._id));
+                      e.dataTransfer.setData("text/plain", String(m._id));
                       e.dataTransfer.effectAllowed = "move";
                     }}
                     onDragOver={(e) => allowDrag && e.preventDefault()}
@@ -186,7 +185,7 @@ export default function ProductsListPage() {
                       if (!allowDrag) return;
                       e.preventDefault();
                       const sourceId = e.dataTransfer.getData("text/plain");
-                      onDropReorder(sourceId, String(p._id));
+                      onDropReorder(sourceId, String(m._id));
                     }}
                   >
                     <td className="py-2 pr-4 align-middle">
@@ -201,34 +200,39 @@ export default function ProductsListPage() {
                         <GripVertical className="h-4 w-4" />
                       </span>
                     </td>
-                    <td className="py-2 pr-4 font-medium">{p.name}</td>
-                    <td className="py-2 pr-4">{p.unit ? (p.unit.abbr ? `${p.unit.abbr} (${p.unit.name})` : p.unit.name) : "-"}</td>
-                    <td className="py-2 pr-4">{p.order ?? 0}</td>
+                    <td className="py-2 pr-4 font-medium">{m.name}</td>
+                    <td className="py-2 pr-4 text-muted-foreground">
+                      {addressLabel(
+                        m.addressJson?.provinceCode,
+                        m.addressJson?.districtCode,
+                        m.addressJson?.wardCode,
+                        m.addressJson?.detail
+                      )}
+                    </td>
+                    <td className="py-2 pr-4">{m.order ?? 0}</td>
                     <td className="py-2 pr-4">
                       <span
                         className={
-                          p.active
+                          m.active
                             ? "inline-flex items-center gap-1 text-green-600"
                             : "inline-flex items-center gap-1 text-gray-500"
                         }
                       >
                         <BadgeCheck className="h-4 w-4" />
-                        {p.active ? "Đang dùng" : "Tạm tắt"}
+                        {m.active ? "Đang dùng" : "Tạm tắt"}
                       </span>
                     </td>
                     <td className="py-2 pr-0">
                       <div className="flex justify-end gap-2">
-                        <Button size="sm" variant="secondary" onClick={() => onToggle(p._id as any, !p.active)}>
-                          {p.active ? "Tắt" : "Kích hoạt"}
+                        <Button size="sm" variant="secondary" onClick={() => onToggle(m._id as any, !m.active)}>
+                          {m.active ? "Tắt" : "Kích hoạt"}
                         </Button>
                         <Button size="sm" variant="outline" asChild>
-                          <Link href={`/dashboard/products/${p._id}/edit`}>
+                          <Link href={`/dashboard/markets/${m._id}/edit`}>
                             <Edit className="mr-2 h-4 w-4" /> Sửa
                           </Link>
                         </Button>
-                        <Button size="sm" variant="destructive" onClick={() => onDelete(p._id as any, p.name)}>
-                          <Trash2 className="mr-2 h-4 w-4" /> Xóa
-                        </Button>
+                        {/* No delete to keep referential integrity simple */}
                       </div>
                     </td>
                   </tr>

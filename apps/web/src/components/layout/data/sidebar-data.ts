@@ -40,8 +40,9 @@ export const sidebarData: SidebarData = {
       title: 'General',
       items: [
         { title: 'Tổng quan', url: '/dashboard', icon: LayoutDashboard },
-        { title: 'Sản phẩm', url: '/products', icon: Package },
-        { title: 'Đơn vị', url: '/units', icon: ListTodo },
+        { title: 'Chợ', url: '/dashboard/markets', icon: ListTodo },
+        { title: 'Sản phẩm', url: '/dashboard/products', icon: Package },
+        { title: 'Đơn vị', url: '/dashboard/units', icon: ListTodo },
         { title: 'Users', url: '/users', icon: Users },
       ],
     },
