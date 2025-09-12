@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { useTheme } from '@/context/theme-provider'
-import { useLayout, type Collapsible, type Variant } from '@/context/layout-provider'
+import { useLayout, type Collapsible } from '@/context/layout-provider'
 import { useSidebar } from '@/components/ui/sidebar'
 
 function Section({ title, desc, children }: { title: string; desc?: string; children: React.ReactNode }) {
@@ -39,8 +39,11 @@ export function ConfigDrawer() {
   const { variant, setVariant, collapsible, setCollapsible, sidebarHidden, setSidebarHidden } = useLayout()
   const { toggleSidebar } = useSidebar()
 
-  const variantOptions: Variant[] = ['inset', 'sidebar', 'floating']
-  const collOptions: Collapsible[] = ['offcanvas', 'icon', 'none']
+  const collOptions: { value: Collapsible; label: string }[] = [
+    { value: 'offcanvas', label: 'Trượt ngoài màn (offcanvas)' },
+    { value: 'icon', label: 'Thu gọn về biểu tượng' },
+    { value: 'none', label: 'Không thu gọn' },
+  ]
 
   function LayoutPreview() {
     return (
@@ -73,12 +76,12 @@ export function ConfigDrawer() {
           <Settings2 className='h-4 w-4' />
         </Button>
       </SheetTrigger>
-      <SheetContent side='right' className='flex w-[360px] sm:w-[420px] flex-col gap-6 overflow-y-auto p-4'>
+      <SheetContent side='right' className='flex w-[92vw] sm:w-[420px] flex-col gap-6 overflow-y-auto p-4'>
         <SheetHeader>
           <SheetTitle>Cài đặt giao diện</SheetTitle>
         </SheetHeader>
 
-        <Section title='Chủ đề' desc='Chọn cách hiển thị màu.'>
+        <Section title='Chế độ' desc='Chọn cách hiển thị màu.'>
           <OptionButton active={theme === 'light'} onClick={() => { setTheme('light' as any); toast.success('Đã chuyển sang Light'); }}>
             <Sun className='h-4 w-4 me-1.5' /> Light
           </OptionButton>
@@ -92,7 +95,7 @@ export function ConfigDrawer() {
 
         <Separator />
 
-        <Section title='Sidebar' desc='Tuỳ chỉnh hiển thị và bố cục sidebar.'>
+        <Section title='Sidebar' desc='Tùy chỉnh hiển thị và bố cục sidebar.'>
           <label className='flex items-center gap-2 text-sm'>
             <Checkbox checked={sidebarHidden} onCheckedChange={(v) => setSidebarHidden(Boolean(v))} />
             Ẩn hoàn toàn sidebar
@@ -102,18 +105,10 @@ export function ConfigDrawer() {
           </Button>
         </Section>
 
-        <Section title='Kiểu Sidebar' desc='Cách sidebar hiển thị trong trang.'>
-          {variantOptions.map((v) => (
-            <OptionButton key={v} active={variant === v} onClick={() => { setVariant(v); toast.message(`Kiểu: ${v}`) }}>
-              {v}
-            </OptionButton>
-          ))}
-        </Section>
-
         <Section title='Hành vi thu gọn' desc='Cách thu gọn sidebar trên desktop.'>
           {collOptions.map((c) => (
-            <OptionButton key={c} active={collapsible === c} onClick={() => { setCollapsible(c); toast.message(`Thu gọn: ${c}`) }}>
-              {c}
+            <OptionButton key={c.value} active={collapsible === c.value} onClick={() => { setCollapsible(c.value); toast.message(`Thu gọn: ${c.label}`) }}>
+              {c.label}
             </OptionButton>
           ))}
         </Section>
@@ -123,10 +118,11 @@ export function ConfigDrawer() {
         <div className='mt-auto border-t pt-4 flex items-center justify-between'>
           <div className='text-xs text-muted-foreground'>Áp dụng ngay • Lưu trong cookie 7 ngày</div>
           <Button variant='secondary' size='sm' onClick={() => {
-            setSidebarHidden(false); setVariant('inset'); setCollapsible('offcanvas'); toast.success('Đã reset về mặc định')
+            setSidebarHidden(false); setVariant('inset'); setCollapsible('offcanvas'); toast.success('Đã đặt lại cài đặt')
           }}>Đặt lại mặc định</Button>
         </div>
       </SheetContent>
     </Sheet>
   )
 }
+

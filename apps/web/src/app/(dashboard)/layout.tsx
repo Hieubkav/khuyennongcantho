@@ -5,8 +5,6 @@ import { AuthenticatedLayout } from "@/components/layout/authenticated-layout";
 import { Search } from "@/components/search";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { ProfileDropdown } from "@/components/profile-dropdown";
-import { ConfigDrawer } from "@/components/config-drawer";
-import { SidebarVisibilityToggle } from "@/components/sidebar-visibility-toggle";
 
 export default function DashboardGroupLayout({ children }: { children: React.ReactNode }) {
   const links = [
@@ -21,9 +19,7 @@ export default function DashboardGroupLayout({ children }: { children: React.Rea
         <TopNav links={links} />
         <div className="ms-auto flex items-center space-x-2 sm:space-x-3 flex-nowrap">
           <Search />
-          <SidebarVisibilityToggle />
           <ThemeSwitch />
-          <ConfigDrawer />
           <ProfileDropdown />
         </div>
       </Header>

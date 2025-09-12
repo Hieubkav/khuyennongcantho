@@ -66,19 +66,20 @@ function SidebarMenuLink({ item, pathname }: { item: NavLink; pathname: string }
 
 function SidebarMenuCollapsible({ item, pathname }: { item: NavCollapsible; pathname: string }) {
   const { setOpenMobile } = useSidebar()
+  const active = isActive(pathname, item, true)
   return (
-    <Collapsible asChild defaultOpen={isActive(pathname, item, true)} className='group/collapsible'>
+    <Collapsible asChild defaultOpen={active} className='group/collapsible'>
       <SidebarMenuItem>
         <CollapsibleTrigger asChild>
-          <SidebarMenuButton tooltip={item.title}>
+          <SidebarMenuButton tooltip={item.title} isActive={active}>
             {item.icon && <item.icon className='shrink-0' />}
             <span className='truncate'>{item.title}</span>
             {item.badge && <NavBadge>{item.badge}</NavBadge>}
             <ChevronRight className='ms-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90' />
           </SidebarMenuButton>
         </CollapsibleTrigger>
-        <CollapsibleContent>
-          <SidebarMenuSub>
+        <CollapsibleContent className='grid grid-rows-[0fr] data-[state=open]:grid-rows-[1fr] transition-all duration-300 overflow-hidden'>
+          <SidebarMenuSub className='min-h-0'>
             {item.items.map((sub) => (
               <SidebarMenuSubItem key={sub.title}>
                 <SidebarMenuSubButton asChild isActive={pathname === sub.url}>
@@ -98,9 +99,10 @@ function SidebarMenuCollapsible({ item, pathname }: { item: NavCollapsible; path
 }
 
 function SidebarMenuCollapsedDropdown({ item, pathname }: { item: NavCollapsible; pathname: string }) {
+  const active = isActive(pathname, item, true)
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton tooltip={item.title} isActive={isActive(pathname, item)}>
+      <SidebarMenuButton tooltip={item.title} isActive={active}>
         {item.icon && <item.icon className='shrink-0' />}
         <span className='truncate'>{item.title}</span>
         {item.badge && <NavBadge>{item.badge}</NavBadge>}
