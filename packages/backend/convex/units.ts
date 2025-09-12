@@ -33,11 +33,19 @@ export const create = mutation({
 });
 
 export const update = mutation({
-  args: { id: v.id("units"), name: v.optional(v.string()), abbr: v.optional(v.string()) },
+  args: {
+    id: v.id("units"),
+    name: v.optional(v.string()),
+    abbr: v.optional(v.string()),
+    order: v.optional(v.number()),
+    active: v.optional(v.boolean()),
+  },
   handler: async (ctx, args) => {
     const patch: Record<string, any> = {};
     if (args.name !== undefined) patch.name = args.name;
     if (args.abbr !== undefined) patch.abbr = args.abbr;
+    if (args.order !== undefined) patch.order = args.order;
+    if (args.active !== undefined) patch.active = args.active;
     await ctx.db.patch(args.id, patch);
     return await ctx.db.get(args.id);
   },
@@ -60,6 +68,20 @@ export const safeDelete = mutation({
       .first();
     if (inUse) throw new Error("Cannot delete unit: referenced by products");
     await ctx.db.delete(args.id);
+    return { success: true };
+  },
+});
+
+export const reorder = mutation({
+  args: {
+    items: v.array(
+      v.object({ id: v.id("units"), order: v.number() })
+    ),
+  },
+  handler: async (ctx, args) => {
+    for (const it of args.items) {
+      await ctx.db.patch(it.id, { order: it.order });
+    }
     return { success: true };
   },
 });
