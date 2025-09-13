@@ -9,11 +9,15 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Edit, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
+import { Pagination } from "@/components/pagination";
+import { useSettings } from "@/hooks/useSettings";
 
 export default function MembersListPage() {
   const [q, setQ] = useState("");
   const list = useQuery(api.members.listBrief, {});
   const toggleActive = useMutation(api.members.toggleActive);
+  const { pageSize } = useSettings();
+  const [page, setPage] = useState(1);
 
   const filtered = useMemo(() => {
     if (!list) return undefined;
@@ -21,6 +25,9 @@ export default function MembersListPage() {
     const s = q.toLowerCase();
     return list.filter((m: any) => [m.username, m.name, m.phone ?? ""].some((t: string) => t.toLowerCase().includes(s)));
   }, [q, list]);
+
+  // Reset page when filter changes
+  useMemo(() => { setPage(1); }, [q]);
 
   const onToggle = async (id: string, next: boolean) => {
     try {
@@ -63,7 +70,7 @@ export default function MembersListPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered?.map((m: any) => (
+                {filtered?.slice((page - 1) * pageSize, page * pageSize).map((m: any) => (
                   <tr key={m._id} className="border-b last:border-0">
                     <td className="py-2 pr-4 font-medium">{m.username}</td>
                     <td className="py-2 pr-4">
@@ -103,6 +110,9 @@ export default function MembersListPage() {
               </tbody>
             </table>
           </div>
+          {filtered && filtered.length > 0 && (
+            <Pagination page={page} total={filtered.length} pageSize={pageSize} onPageChange={setPage} />
+          )}
         </CardContent>
       </Card>
     </div>

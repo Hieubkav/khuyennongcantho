@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BadgeCheck, Edit, Plus, Search, Trash2, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Pagination } from "@/components/pagination";
+import { useSettings } from "@/hooks/useSettings";
 
 export default function ProductsListPage() {
   const [q, setQ] = useState("");
@@ -23,6 +25,8 @@ export default function ProductsListPage() {
   const [sortBy, setSortBy] = useState<"order" | "name">("order");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const allowDrag = !q.trim() && sortBy === "order" && statusFilter === "all";
+  const { pageSize } = useSettings();
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     if (products) setList(products);
@@ -49,6 +53,11 @@ export default function ProductsListPage() {
     }
     return base;
   }, [q, list, sortBy, sortDir, statusFilter]);
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [q, sortBy, sortDir, statusFilter]);
 
   const onDelete = async (id: string, name: string) => {
     try {
@@ -218,7 +227,9 @@ export default function ProductsListPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered?.map((p, idx) => (
+                {filtered
+                  ?.slice((page - 1) * pageSize, page * pageSize)
+                  .map((p, idx) => (
                   <tr
                     key={p._id}
                     className="border-b last:border-0"
@@ -244,7 +255,7 @@ export default function ProductsListPage() {
                             : "Xóa tìm kiếm, hiển thị Tất cả và chọn Thứ tự để sắp xếp"
                         }
                       >
-                        {idx + 1}
+                        {(page - 1) * pageSize + idx + 1}
                       </span>
                     </td>
                     <td className="py-2 pr-4 font-medium">{p.name}</td>
@@ -294,6 +305,9 @@ export default function ProductsListPage() {
               </tbody>
             </table>
           </div>
+          {filtered && filtered.length > 0 && (
+            <Pagination page={page} total={filtered.length} pageSize={pageSize} onPageChange={setPage} />
+          )}
         </CardContent>
       </Card>
     </div>

@@ -148,4 +148,12 @@ export default defineSchema({
     .index("by_reportId", ["reportId"]) // fetch all items for a report
     .index("by_report_market", ["reportId", "marketId"]) // filter per market within report
     .index("by_productId", ["productId"]), // for ref checks
+  
+  // Global site settings (singleton by key = "global")
+  settings: defineTable({
+    key: v.string(), // use constant "global" to ensure single row
+    siteName: v.string(),
+    pageSize: v.number(), // default page size for pagination
+    updatedAt: v.optional(v.number()), // epoch ms
+  }).index("by_key", ["key"]),
 });

@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BadgeCheck, Edit, Plus, Search, GripVertical, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { addressLabel } from "@/lib/vn-locations";
+import { Pagination } from "@/components/pagination";
+import { useSettings } from "@/hooks/useSettings";
 
 export default function MarketsListPage() {
   const [q, setQ] = useState("");
@@ -22,6 +24,8 @@ export default function MarketsListPage() {
   const [sortBy, setSortBy] = useState<"order" | "name">("order");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const allowDrag = !q.trim() && sortBy === "order" && statusFilter === "all";
+  const { pageSize } = useSettings();
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     if (markets) setList(markets as any);
@@ -56,6 +60,10 @@ export default function MarketsListPage() {
     }
     return base;
   }, [q, list, sortBy, sortDir, statusFilter]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [q, sortBy, sortDir, statusFilter]);
 
   const onToggle = async (id: string, next: boolean) => {
     try {
@@ -178,7 +186,9 @@ export default function MarketsListPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered?.map((m, idx) => (
+                {filtered
+                  ?.slice((page - 1) * pageSize, page * pageSize)
+                  .map((m, idx) => (
                   <tr
                     key={m._id}
                     className="border-b last:border-0"
@@ -206,7 +216,7 @@ export default function MarketsListPage() {
                       >
                         <GripVertical className="h-4 w-4" />
                       </span>
-                      <span className="ml-2">{idx + 1}</span>
+                      <span className="ml-2">{(page - 1) * pageSize + idx + 1}</span>
                     </td>
                     <td className="py-2 pr-4 font-medium">{m.name}</td>
                     <td className="py-2 pr-4 text-muted-foreground">
@@ -264,6 +274,9 @@ export default function MarketsListPage() {
               </tbody>
             </table>
           </div>
+          {filtered && filtered.length > 0 && (
+            <Pagination page={page} total={filtered.length} pageSize={pageSize} onPageChange={setPage} />
+          )}
         </CardContent>
       </Card>
     </div>

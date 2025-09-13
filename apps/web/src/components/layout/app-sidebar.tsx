@@ -3,17 +3,18 @@ import { useLayout } from '@/context/layout-provider'
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, useSidebar } from '@/components/ui/sidebar'
 import { sidebarData } from './data/sidebar-data'
 import { NavGroup } from './nav-group'
+import { useSettings } from '@/hooks/useSettings'
 
 export function AppSidebar() {
   const { collapsible, variant } = useLayout()
   const { state } = useSidebar()
+  const { siteName } = useSettings()
   return (
     <Sidebar collapsible={collapsible} variant={variant}>
       {state === 'expanded' && (
         <SidebarHeader>
           <div className="px-2 py-1.5">
-            <div className="text-sm font-semibold">Khuyến nông Cần Thơ</div>
-            <div className="text-muted-foreground text-xs">Dashboard</div>
+            <div className="text-sm font-semibold truncate" title={siteName || undefined}>{siteName || ''}</div>
           </div>
         </SidebarHeader>
       )}
@@ -26,4 +27,3 @@ export function AppSidebar() {
     </Sidebar>
   )
 }
-

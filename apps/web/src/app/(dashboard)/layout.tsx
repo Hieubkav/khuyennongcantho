@@ -30,4 +30,3 @@ export default function DashboardGroupLayout({ children }: { children: React.Rea
     </AuthenticatedLayout>
   );
 }
-

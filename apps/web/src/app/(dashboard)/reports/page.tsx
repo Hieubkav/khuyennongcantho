@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { Pagination } from "@/components/pagination";
+import { useSettings } from "@/hooks/useSettings";
 
 function today(): string {
   const d = new Date();
@@ -21,9 +23,11 @@ export default function ReportsPage() {
   const [fromDay, setFromDay] = useState<string>(today());
   const [toDay, setToDay] = useState<string>(today());
   const summary = useQuery(api.reports.summaryByMarketRange, { fromDay, toDay });
-  const list = useQuery(api.reports.listBrief, { limit: 20 });
+  const list = useQuery(api.reports.listBrief, {} as any);
   const admins = useQuery(api.admins.listBrief, {} as any);
   const generate = useMutation(api.reports.generateRange);
+  const { pageSize } = useSettings();
+  const [page, setPage] = useState(1);
 
   const [meUsername, setMeUsername] = useState<string | null>(null);
   useEffect(() => {
@@ -121,7 +125,7 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody>
-                {list?.map((r: any) => (
+                {list?.slice((page - 1) * pageSize, page * pageSize).map((r: any) => (
                   <tr key={String(r._id)} className="border-b last:border-0">
                     <td className="py-2 pr-4">{r.fromDay} - {r.toDay}</td>
                     <td className="py-2 pr-4 text-muted-foreground">{new Date(r.generatedAt).toLocaleString()}</td>
@@ -145,9 +149,11 @@ export default function ReportsPage() {
               </tbody>
             </table>
           </div>
+          {list && list.length > 0 && (
+            <Pagination page={page} total={list.length} pageSize={pageSize} onPageChange={setPage} />
+          )}
         </CardContent>
       </Card>
     </div>
   );
 }
-

@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BadgeCheck, Edit, Plus, Search, Trash2, GripVertical, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Pagination } from "@/components/pagination";
+import { useSettings } from "@/hooks/useSettings";
 
 export default function UnitsListPage() {
   const [q, setQ] = useState("");
@@ -23,6 +25,8 @@ export default function UnitsListPage() {
   const [sortBy, setSortBy] = useState<"order" | "name">("order");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const allowDrag = !q.trim() && sortBy === "order" && statusFilter === "all";
+  const { pageSize } = useSettings();
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     if (units) setList(units as any);
@@ -69,6 +73,11 @@ export default function UnitsListPage() {
     setSortBy("order");
     setSortDir("asc");
   };
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [q, sortBy, sortDir, statusFilter]);
 
   function UnitDeleteButton({ id, name, onDelete }: { id: string; name: string; onDelete: () => void }) {
     const summary = useQuery(api.units.refSummary as any, { id: id as any, limit: 3 } as any) as any;
@@ -234,7 +243,7 @@ export default function UnitsListPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered?.map((u, idx) => (
+                {filtered?.slice((page - 1) * pageSize, page * pageSize).map((u, idx) => (
                   <tr
                     key={u._id}
                     className="border-b last:border-0"
@@ -262,7 +271,7 @@ export default function UnitsListPage() {
                       >
                         <GripVertical className="h-4 w-4" />
                       </span>
-                      <span className="ml-2">{idx + 1}</span>
+                      <span className="ml-2">{(page - 1) * pageSize + idx + 1}</span>
                     </td>
                     <td className="py-2 pr-4 font-medium">{u.name}</td>
                     <td className="py-2 pr-4">{u.abbr ?? "-"}</td>
@@ -313,6 +322,9 @@ export default function UnitsListPage() {
               </tbody>
             </table>
           </div>
+          {filtered && filtered.length > 0 && (
+            <Pagination page={page} total={filtered.length} pageSize={pageSize} onPageChange={setPage} />
+          )}
         </CardContent>
       </Card>
     </div>

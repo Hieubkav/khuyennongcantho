@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Edit, Plus, Search, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
+import { Pagination } from "@/components/pagination";
+import { useSettings } from "@/hooks/useSettings";
 
 export default function AdminsListPage() {
   const [q, setQ] = useState("");
@@ -18,6 +20,8 @@ export default function AdminsListPage() {
   const [sortBy, setSortBy] = useState<"name" | "username">("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [me, setMe] = useState<{ isSuper: boolean; superUsername?: string } | null>(null);
+  const { pageSize } = useSettings();
+  const [page, setPage] = useState(1);
 
   // fetch current admin info to control permissions on UI
   useMemo(() => {
@@ -50,6 +54,11 @@ export default function AdminsListPage() {
     });
     return sorted;
   }, [q, list, statusFilter, sortBy, sortDir]);
+
+  // Reset to first page when filters/sort change
+  useMemo(() => {
+    setPage(1);
+  }, [q, statusFilter, sortBy, sortDir]);
 
   const onToggle = async (id: string, next: boolean) => {
     try {
@@ -128,7 +137,7 @@ export default function AdminsListPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered?.map((a: any) => (
+                {filtered?.slice((page - 1) * pageSize, page * pageSize).map((a: any) => (
                   <tr key={a._id} className="border-b last:border-0">
                     <td className="py-2 pr-4 font-medium">{a.username}</td>
                     <td className="py-2 pr-4">{a.name}</td>
@@ -174,6 +183,9 @@ export default function AdminsListPage() {
               </tbody>
             </table>
           </div>
+          {filtered && filtered.length > 0 && (
+            <Pagination page={page} total={filtered.length} pageSize={pageSize} onPageChange={setPage} />
+          )}
         </CardContent>
       </Card>
     </div>

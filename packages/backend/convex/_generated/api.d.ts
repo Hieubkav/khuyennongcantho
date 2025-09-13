@@ -21,6 +21,7 @@ import type * as members from "../members.js";
 import type * as products from "../products.js";
 import type * as reports from "../reports.js";
 import type * as seeds from "../seeds.js";
+import type * as settings from "../settings.js";
 import type * as surveyItems from "../surveyItems.js";
 import type * as surveys from "../surveys.js";
 import type * as units from "../units.js";
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   products: typeof products;
   reports: typeof reports;
   seeds: typeof seeds;
+  settings: typeof settings;
   surveyItems: typeof surveyItems;
   surveys: typeof surveys;
   units: typeof units;

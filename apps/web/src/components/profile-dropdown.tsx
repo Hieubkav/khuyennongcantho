@@ -1,18 +1,39 @@
 "use client";
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useConvex } from 'convex/react'
+import { api } from '@dohy/backend/convex/_generated/api'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 export function ProfileDropdown() {
   const router = useRouter()
+  const convex = useConvex()
 
   async function onSignOut() {
     try {
       await fetch('/api/admin/logout', { method: 'POST' })
     } catch {}
     router.replace('/sign-in')
+  }
+
+  async function goToMyProfile() {
+    try {
+      const res = await fetch('/api/admin/me', { cache: 'no-store' })
+      const j = await res.json().catch(() => ({}))
+      const username: string | undefined = j?.ok ? j.username : undefined
+      if (!username) {
+        router.push('/dashboard/settings')
+        return
+      }
+      const me = (await convex.query(api.admins.getByUsernameWithHash, { username })) as any
+      const id = me?._id
+      if (id) router.push(`/dashboard/admins/${id}/edit`)
+      else router.push('/dashboard/settings')
+    } catch {
+      router.push('/dashboard/settings')
+    }
   }
 
   return (
@@ -34,25 +55,20 @@ export function ProfileDropdown() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-            <Link href={'/settings' as any}>
-              Profile
-              <DropdownMenuShortcut>⌘P</DropdownMenuShortcut>
-            </Link>
+          <DropdownMenuItem onClick={goToMyProfile}>
+            Tài khoản
+            <DropdownMenuShortcut>
+              
+            </DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link href={'/settings' as any}>
-              Billing
-              <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
+            <Link href={'/dashboard/settings' as any}>
+              Cài đặt
+              <DropdownMenuShortcut>
+                
+              </DropdownMenuShortcut>
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link href={'/settings' as any}>
-              Settings
-              <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem>New Team</DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onSignOut}>Đăng xuất</DropdownMenuItem>
@@ -60,3 +76,4 @@ export function ProfileDropdown() {
     </DropdownMenu>
   )
 }
+

@@ -22,7 +22,7 @@ export function NavGroup({ title, items }: NavGroupProps) {
   const pathname = usePathname()
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>{title}</SidebarGroupLabel>
+      {title ? <SidebarGroupLabel>{title}</SidebarGroupLabel> : null}
       <SidebarMenu>
         {items.map((item) => {
           const key = `${item.title}-${'url' in item ? item.url : 'group'}`
