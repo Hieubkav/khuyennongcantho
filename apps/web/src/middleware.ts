@@ -1,11 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-function b64ToArrayBuffer(b64url: string): ArrayBuffer {
+function b64ToUint8(b64url: string): Uint8Array {
   const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/") + "==".slice((2 - (b64url.length * 3) % 4) % 4);
   const bin = atob(b64);
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return bytes.buffer as ArrayBuffer;
+  return bytes;
 }
 
 async function verify(token: string, secret: string): Promise<boolean> {
@@ -18,7 +18,17 @@ async function verify(token: string, secret: string): Promise<boolean> {
     false,
     ["verify"]
   );
-  const ok = await crypto.subtle.verify("HMAC", key, b64ToArrayBuffer(sigB64), new TextEncoder().encode(payloadB64));
+  const sigBytes = b64ToUint8(sigB64);
+  const payloadBytes = new TextEncoder().encode(payloadB64);
+  let ok: boolean;
+  try {
+    const sigView = sigBytes as unknown as ArrayBuffer;
+    const payloadView = payloadBytes as unknown as ArrayBuffer;
+    ok = await crypto.subtle.verify("HMAC", key, sigView, payloadView);
+  } catch {
+    // Fallback for runtimes expecting ArrayBuffer
+    ok = await crypto.subtle.verify("HMAC", key, sigBytes.buffer as ArrayBuffer, payloadBytes.buffer as ArrayBuffer);
+  }
   if (!ok) return false;
   const payloadJson = atob(payloadB64.replace(/-/g, "+").replace(/_/g, "/"));
   try {
