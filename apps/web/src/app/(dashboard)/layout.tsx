@@ -12,6 +12,8 @@ export default function DashboardGroupLayout({ children }: { children: React.Rea
     { title: "Chợ", href: "/dashboard/markets" },
     { title: "Sản phẩm", href: "/dashboard/products" },
     { title: "Đơn vị", href: "/dashboard/units" },
+    { title: "Báo cáo", href: "/dashboard/reports" },
+    { title: "Khảo sát", href: "/dashboard/surveys" },
   ];
 
   return (
@@ -28,3 +30,4 @@ export default function DashboardGroupLayout({ children }: { children: React.Rea
     </AuthenticatedLayout>
   );
 }
+

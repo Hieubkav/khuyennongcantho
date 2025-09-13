@@ -66,7 +66,12 @@ export default function MembersListPage() {
                 {filtered?.map((m: any) => (
                   <tr key={m._id} className="border-b last:border-0">
                     <td className="py-2 pr-4 font-medium">{m.username}</td>
-                    <td className="py-2 pr-4">{m.name}</td>
+                    <td className="py-2 pr-4">
+                      <div>{m.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        Dang ho tro: <MemberMarketsCell memberId={m._id as any} />
+                      </div>
+                    </td>
                     <td className="py-2 pr-4 text-muted-foreground">{m.phone ?? ""}</td>
                     <td className="py-2 pr-4">
                       <span className={m.active ? "text-green-600" : "text-gray-500"}>{m.active ? "Đang dùng" : "Tạm tắt"}</span>
@@ -104,3 +109,10 @@ export default function MembersListPage() {
   );
 }
 
+function MemberMarketsCell({ memberId }: { memberId: string }) {
+  const markets = useQuery(api.assignments.listByMember, { memberId: memberId as any });
+  if (!markets) return <span className="text-muted-foreground">...</span>;
+  if (markets.length === 0) return <span className="text-muted-foreground">(Chưa phân công)</span>;
+  const names = markets.map((m: any) => m.name).join(", ");
+  return <span className="text-muted-foreground">{names}</span>;
+}

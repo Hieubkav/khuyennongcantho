@@ -202,12 +202,18 @@ export default function MarketsListPage() {
                     </td>
                     <td className="py-2 pr-4 font-medium">{m.name}</td>
                     <td className="py-2 pr-4 text-muted-foreground">
-                      {addressLabel(
-                        m.addressJson?.provinceCode,
-                        m.addressJson?.districtCode,
-                        m.addressJson?.wardCode,
-                        m.addressJson?.detail
-                      )}
+                      <div>
+                        {addressLabel(
+                          m.addressJson?.provinceCode,
+                          m.addressJson?.districtCode,
+                          m.addressJson?.wardCode,
+                          m.addressJson?.detail
+                        )}
+                      </div>
+                      <div className="text-xs">
+                        <span className="text-foreground/60">Phu trach: </span>
+                        <MarketAssigneesCell marketId={m._id as any} />
+                      </div>
                     </td>
                     <td className="py-2 pr-4">{m.order ?? 0}</td>
                     <td className="py-2 pr-4">
@@ -258,4 +264,12 @@ export default function MarketsListPage() {
       </Card>
     </div>
   );
+}
+
+function MarketAssigneesCell({ marketId }: { marketId: string }) {
+  const members = useQuery(api.assignments.listByMarket, { marketId: marketId as any });
+  if (!members) return <span className="text-muted-foreground">...</span>;
+  if (members.length === 0) return <span className="text-muted-foreground">(Chưa phân công)</span>;
+  const names = members.map((m: any) => m.name).join(", ");
+  return <span className="text-muted-foreground">{names}</span>;
 }

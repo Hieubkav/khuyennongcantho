@@ -155,3 +155,38 @@ export const countFilled = query({
     return { filled, total };
   },
 });
+
+// Admin listing: list surveys by date range, optional filters, expanded names
+export const listByRange = query({
+  args: {
+    fromDay: v.string(),
+    toDay: v.string(),
+    marketId: v.optional(v.id("markets")),
+    memberId: v.optional(v.id("members")),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    let rows = await ctx.db
+      .query("surveys")
+      .withIndex("by_surveyDay", (q) => q.gte("surveyDay", args.fromDay))
+      .collect();
+    rows = rows.filter(
+      (s) => s.surveyDay >= args.fromDay && s.surveyDay <= args.toDay
+    );
+    if (args.marketId) rows = rows.filter((s) => String(s.marketId) === String(args.marketId));
+    if (args.memberId) rows = rows.filter((s) => String(s.memberId) === String(args.memberId));
+    rows.sort((a, b) => b._creationTime - a._creationTime);
+    const lim = args.limit ?? 200;
+    rows = rows.slice(0, lim);
+    const marketDocs = await Promise.all(rows.map((s) => ctx.db.get(s.marketId)));
+    const memberDocs = await Promise.all(rows.map((s) => ctx.db.get(s.memberId)));
+    return rows.map((s, i) => ({
+      _id: s._id,
+      surveyDay: s.surveyDay,
+      marketId: s.marketId,
+      memberId: s.memberId,
+      marketName: marketDocs[i]?.name ?? null,
+      memberName: memberDocs[i]?.name ?? null,
+    }));
+  },
+});

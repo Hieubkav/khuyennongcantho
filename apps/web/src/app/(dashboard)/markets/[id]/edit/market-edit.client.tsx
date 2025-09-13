@@ -5,6 +5,8 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@dohy/backend/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -13,6 +15,10 @@ import { provinces, findProvince, findDistrict } from "@/lib/vn-locations";
 export default function MarketEditClient({ id }: { id: string }) {
   const list = useQuery(api.markets.listBrief, {});
   const update = useMutation(api.markets.update);
+  const membersAll = useQuery(api.members.listBrief, {});
+  const assignedMembers = useQuery(api.assignments.listByMarket, { marketId: id as any });
+  const doAssign = useMutation(api.assignments.assign);
+  const doUnassign = useMutation(api.assignments.unassign);
 
   const current = useMemo(() => list?.find((m) => String(m._id) === String(id)), [list, id]);
 
@@ -35,12 +41,6 @@ export default function MarketEditClient({ id }: { id: string }) {
 
   const districts = useMemo(() => findProvince(provinceCode)?.districts ?? [], [provinceCode]);
   const wards = useMemo(() => findDistrict(provinceCode, districtCode)?.wards ?? [], [provinceCode, districtCode]);
-
-  useEffect(() => {
-    setDistrictCode("");
-    setWardCode("");
-  }, [provinceCode]);
-  useEffect(() => setWardCode("") , [districtCode]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,7 +77,7 @@ export default function MarketEditClient({ id }: { id: string }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-2xl">
+    <div className="mx-auto w-full max-w-3xl space-y-6">
       <form onSubmit={onSubmit}>
         <Card>
           <CardHeader>
@@ -93,7 +93,13 @@ export default function MarketEditClient({ id }: { id: string }) {
               <select
                 className="h-9 rounded-md border bg-background px-3 text-sm"
                 value={provinceCode}
-                onChange={(e) => setProvinceCode(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setProvinceCode(v);
+                  // Clear dependent selections only on user change
+                  setDistrictCode("");
+                  setWardCode("");
+                }}
               >
                 <option value="">-- Chọn tỉnh/thành --</option>
                 {provinces.map((p) => (
@@ -106,7 +112,12 @@ export default function MarketEditClient({ id }: { id: string }) {
               <select
                 className="h-9 rounded-md border bg-background px-3 text-sm"
                 value={districtCode}
-                onChange={(e) => setDistrictCode(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setDistrictCode(v);
+                  // Clear ward when district changes via user action
+                  setWardCode("");
+                }}
                 disabled={!provinceCode}
               >
                 <option value="">-- Chọn quận/huyện --</option>
@@ -142,6 +153,51 @@ export default function MarketEditClient({ id }: { id: string }) {
           </CardFooter>
         </Card>
       </form>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Phân công nhân viên (Members)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="text-sm text-muted-foreground">
+            {assignedMembers ? (
+              <span>Hiện phân công: {assignedMembers.length} nhân viên</span>
+            ) : (
+              <span>Đang tải danh sách phân công...</span>
+            )}
+          </div>
+          <div>
+            <div className="mb-2 text-sm font-medium">Chọn nhân viên phân công</div>
+            <ScrollArea className="h-64 rounded-md border p-2">
+              <div className="grid gap-2">
+                {membersAll?.map((m: any) => {
+                  const checked = !!assignedMembers?.find((x: any) => String(x._id) === String(m._id));
+                  return (
+                    <label key={String(m._id)} className="flex items-center gap-2">
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={async (val) => {
+                          try {
+                            if (val) await doAssign({ marketId: id as any, memberId: m._id as any });
+                            else await doUnassign({ marketId: id as any, memberId: m._id as any });
+                          } catch (err: any) {
+                            toast.error(err?.message ?? "Cập nhật phân công thất bại");
+                          }
+                        }}
+                      />
+                      <span className="text-sm">{m.name} <span className="text-muted-foreground">({m.username})</span></span>
+                    </label>
+                  );
+                })}
+                {membersAll && membersAll.length === 0 && (
+                  <div className="text-sm text-muted-foreground">Chưa có nhân viên nào.</div>
+                )}
+                {!membersAll && <div className="text-sm text-muted-foreground">Đang tải danh sách nhân viên...</div>}
+              </div>
+            </ScrollArea>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

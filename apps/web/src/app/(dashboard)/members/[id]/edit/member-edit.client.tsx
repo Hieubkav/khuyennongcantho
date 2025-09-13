@@ -7,11 +7,17 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 
 export default function MemberEditClient({ id }: { id: string }) {
   const list = useQuery(api.members.listBrief, {});
   const update = useMutation(api.members.updateProfile);
+  const marketsAll = useQuery(api.markets.listBrief, {});
+  const assignedMarkets = useQuery(api.assignments.listByMember, { memberId: id as any });
+  const doAssign = useMutation(api.assignments.assign);
+  const doUnassign = useMutation(api.assignments.unassign);
   const current = useMemo(() => list?.find((x: any) => String(x._id) === String(id)), [list, id]);
 
   const [username] = useState<string>(current?.username ?? "");
@@ -52,7 +58,7 @@ export default function MemberEditClient({ id }: { id: string }) {
   };
 
   return (
-    <div className="mx-auto w-full max-w-2xl">
+    <div className="mx-auto w-full max-w-3xl space-y-6">
       <form onSubmit={onSubmit}>
         <Card>
           <CardHeader>
@@ -84,7 +90,54 @@ export default function MemberEditClient({ id }: { id: string }) {
           </CardFooter>
         </Card>
       </form>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Phân công chợ (Markets)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="text-sm text-muted-foreground">
+            {assignedMarkets ? (
+              <span>Hiện phân công: {assignedMarkets.length} chợ</span>
+            ) : (
+              <span>Đang tải danh sách phân công...</span>
+            )}
+          </div>
+          <div>
+            <div className="mb-2 text-sm font-medium">Chọn chợ phân công</div>
+            <ScrollArea className="h-64 rounded-md border p-2">
+              <div className="grid gap-2">
+                {marketsAll?.map((m: any) => {
+                  const checked = !!assignedMarkets?.find((x: any) => String(x._id) === String(m._id));
+                  return (
+                    <label key={String(m._id)} className="flex items-center gap-2">
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={async (val) => {
+                          try {
+                            if (val) await doAssign({ marketId: m._id as any, memberId: id as any });
+                            else await doUnassign({ marketId: m._id as any, memberId: id as any });
+                          } catch (err: any) {
+                            toast.error(err?.message ?? "Cập nhật phân công thất bại");
+                          }
+                        }}
+                      />
+                      <span className="text-sm">
+                        {m.name}
+                        {m.addressJson?.detail ? <span className="text-muted-foreground"> - {m.addressJson.detail}</span> : null}
+                      </span>
+                    </label>
+                  );
+                })}
+                {marketsAll && marketsAll.length === 0 && (
+                  <div className="text-sm text-muted-foreground">Chưa có chợ nào.</div>
+                )}
+                {!marketsAll && <div className="text-sm text-muted-foreground">Đang tải danh sách chợ...</div>}
+              </div>
+            </ScrollArea>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
-
