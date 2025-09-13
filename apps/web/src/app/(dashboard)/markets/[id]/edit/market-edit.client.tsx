@@ -8,9 +8,10 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
+import { SelectSearch } from "@/components/ui/select-search";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { provinces, findProvince, findDistrict } from "@/lib/vn-locations";
+import { provinces, wardsOfProvince } from "@/lib/vn-locations";
 
 export default function MarketEditClient({ id }: { id: string }) {
   const list = useQuery(api.markets.listBrief, {});
@@ -24,8 +25,9 @@ export default function MarketEditClient({ id }: { id: string }) {
 
   const [name, setName] = useState<string>("");
   const [provinceCode, setProvinceCode] = useState<string>("");
-  const [districtCode, setDistrictCode] = useState<string>("");
   const [wardCode, setWardCode] = useState<string>("");
+  const [qProv, setQProv] = useState<string>("");
+  const [qWard, setQWard] = useState<string>("");
   const [detail, setDetail] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
@@ -33,14 +35,20 @@ export default function MarketEditClient({ id }: { id: string }) {
     if (current) {
       setName(current.name ?? "");
       setProvinceCode(current.addressJson?.provinceCode ?? "");
-      setDistrictCode(current.addressJson?.districtCode ?? "");
       setWardCode(current.addressJson?.wardCode ?? "");
       setDetail(current.addressJson?.detail ?? "");
     }
   }, [current?._id]);
 
-  const districts = useMemo(() => findProvince(provinceCode)?.districts ?? [], [provinceCode]);
-  const wards = useMemo(() => findDistrict(provinceCode, districtCode)?.wards ?? [], [provinceCode, districtCode]);
+  const wards = useMemo(() => wardsOfProvince(provinceCode), [provinceCode]);
+  const provinceOptions = useMemo(
+    () => provinces.map((p) => ({ value: String(p.id), label: p.name })),
+    []
+  );
+  const wardOptions = useMemo(
+    () => wards.map((w) => ({ value: String(w.id), label: w.name })),
+    [wards]
+  );
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +60,6 @@ export default function MarketEditClient({ id }: { id: string }) {
         name,
         addressJson: {
           provinceCode: provinceCode || undefined,
-          districtCode: districtCode || undefined,
           wardCode: wardCode || undefined,
           detail: detail || undefined,
         } as any,
@@ -90,55 +97,25 @@ export default function MarketEditClient({ id }: { id: string }) {
             </div>
             <div className="grid gap-2">
               <Label>Tỉnh/Thành phố</Label>
-              <select
-                className="h-9 rounded-md border bg-background px-3 text-sm"
+              <SelectSearch
+                options={provinceOptions}
                 value={provinceCode}
-                onChange={(e) => {
-                  const v = e.target.value;
+                onChange={(v) => {
                   setProvinceCode(v);
-                  // Clear dependent selections only on user change
-                  setDistrictCode("");
                   setWardCode("");
                 }}
-              >
-                <option value="">-- Chọn tỉnh/thành --</option>
-                {provinces.map((p) => (
-                  <option key={p.code} value={p.code}>{p.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="grid gap-2">
-              <Label>Quận/Huyện</Label>
-              <select
-                className="h-9 rounded-md border bg-background px-3 text-sm"
-                value={districtCode}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setDistrictCode(v);
-                  // Clear ward when district changes via user action
-                  setWardCode("");
-                }}
-                disabled={!provinceCode}
-              >
-                <option value="">-- Chọn quận/huyện --</option>
-                {districts.map((d) => (
-                  <option key={d.code} value={d.code}>{d.name}</option>
-                ))}
-              </select>
+                placeholder="Chọn tỉnh/thành"
+              />
             </div>
             <div className="grid gap-2">
               <Label>Phường/Xã</Label>
-              <select
-                className="h-9 rounded-md border bg-background px-3 text-sm"
+              <SelectSearch
+                options={wardOptions}
                 value={wardCode}
-                onChange={(e) => setWardCode(e.target.value)}
-                disabled={!districtCode}
-              >
-                <option value="">-- Chọn phường/xã --</option>
-                {wards.map((w) => (
-                  <option key={w.code} value={w.code}>{w.name}</option>
-                ))}
-              </select>
+                onChange={setWardCode}
+                placeholder="Chọn phường/xã"
+                disabled={!provinceCode}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="detail">Địa chỉ chi tiết</Label>

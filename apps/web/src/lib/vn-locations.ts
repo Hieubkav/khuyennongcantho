@@ -1,46 +1,40 @@
-import data from "@/lib/vn-locations.json" with { type: "json" };
+// New lightweight source: provinces + wards, no districts
+import provincesJson from "@/lib/provinces.json" with { type: "json" };
+import wardsJson from "@/lib/wards.json" with { type: "json" };
 
-export type Ward = { code: string; name: string };
-export type District = { code: string; name: string; wards: Ward[] };
-export type Province = { code: string; name: string; districts: District[] };
+export type Province = { id: string; name: string };
+export type Ward = { id: string; name: string; province_id: string; province_name: string };
 
-export const provinces: Province[] = (data as any).provinces as Province[];
+export const provinces: Province[] = provincesJson as Province[];
+export const wards: Ward[] = wardsJson as Ward[];
 
-export function findProvince(code?: string | null): Province | undefined {
-  if (!code) return undefined;
-  return provinces.find((p) => String(p.code) === String(code));
+export function findProvince(id?: string | null): Province | undefined {
+  if (!id) return undefined;
+  return provinces.find((p) => String(p.id) === String(id));
 }
 
-export function findDistrict(provinceCode?: string | null, districtCode?: string | null): District | undefined {
-  const p = findProvince(provinceCode);
-  if (!p || !districtCode) return undefined;
-  return p.districts.find((d) => String(d.code) === String(districtCode));
+export function wardsOfProvince(provinceId?: string | null): Ward[] {
+  if (!provinceId) return [];
+  return wards.filter((w) => String(w.province_id) === String(provinceId));
 }
 
-export function findWard(
-  provinceCode?: string | null,
-  districtCode?: string | null,
-  wardCode?: string | null
-): Ward | undefined {
-  const d = findDistrict(provinceCode, districtCode);
-  if (!d || !wardCode) return undefined;
-  return d.wards.find((w) => String(w.code) === String(wardCode));
+export function findWardById(id?: string | null): Ward | undefined {
+  if (!id) return undefined;
+  return wards.find((w) => String(w.id) === String(id));
 }
 
+// Backward-compatible addressLabel signature (ignore district argument if provided)
 export function addressLabel(
-  provinceCode?: string | null,
-  districtCode?: string | null,
-  wardCode?: string | null,
+  provinceId?: string | null,
+  _districtCodeOrUnused?: string | null,
+  wardId?: string | null,
   detail?: string | null
 ) {
   const parts: string[] = [];
   if (detail) parts.push(detail);
-  const w = findWard(provinceCode, districtCode, wardCode);
+  const w = findWardById(wardId);
   if (w) parts.push(w.name);
-  const d = findDistrict(provinceCode, districtCode);
-  if (d) parts.push(d.name);
-  const p = findProvince(provinceCode);
+  const p = findProvince(provinceId);
   if (p) parts.push(p.name);
   return parts.join(", ");
 }
-
