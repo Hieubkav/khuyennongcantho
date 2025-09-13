@@ -1,24 +1,27 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@dohy/backend/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { addressLabel } from "@/lib/vn-locations";
+import { Progress } from "@/components/ui/progress";
+import { useParams } from "next/navigation";
 
-export default function SurveyDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const p = use(params);
-  const id = p?.id as string;
+export default function SurveyDetailPage() {
+  const { id } = useParams<{ id: string }>();
   const detail = useQuery(api.surveys.getFull, { id: id as any });
   const autosave = useMutation(api.surveyItems.autosave);
   const clearPrice = useMutation(api.surveyItems.clearPrice);
   const bulkClear = useMutation(api.surveyItems.bulkClear);
+  const updateSurveyDay = useMutation(api.surveys.updateSurveyDay as any);
+  const confirmActive = useMutation(api.surveys.confirmActive as any);
+  const toggleActive = useMutation(api.surveys.toggleActive);
 
-  // local editable list
   const [localItems, setLocalItems] = useState<any[] | undefined>(undefined);
 
-  // Helpers: parse/format tiền Việt (hiển thị 1.000.000 VND)
   const formatVnd = (n: number | null | undefined) =>
     n === null || n === undefined ? "" : Number(n).toLocaleString("vi-VN");
   const onlyDigits = (s: string) => s.replace(/[^0-9]/g, "");
@@ -33,19 +36,30 @@ export default function SurveyDetailPage({ params }: { params: Promise<{ id: str
     if (!digits) return "";
     return Number(digits).toLocaleString("vi-VN");
   };
+
   useEffect(() => {
     if (detail?.items)
       setLocalItems(
-        detail.items.map((it: any) => ({
+        (detail as any).items.map((it: any) => ({
           ...it,
           priceStr: formatVnd(it.price),
         }))
       );
   }, [detail?.items]);
 
+  const [day, setDay] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const sd = (detail as any)?.survey?.surveyDay as string | undefined;
+    if (sd) setDay(String(sd));
+  }, [detail?.survey?.surveyDay]);
+
   if (!detail) return <div className="text-sm text-muted-foreground">Đang tải...</div>;
-  const { survey, market, member } = detail as any;
+  const { survey, market } = detail as any;
   const items = localItems;
+
+  const filledCount = (items ?? []).filter((it) => it.price !== null && it.price !== undefined).length;
+  const totalCount = items?.length ?? 0;
+  const progressVal = totalCount ? Math.round((filledCount / totalCount) * 100) : 0;
 
   const onPriceChange = (idx: number, v: string) => {
     if (!items) return;
@@ -66,14 +80,12 @@ export default function SurveyDetailPage({ params }: { params: Promise<{ id: str
   const onBlurSave = async (row: any, idx?: number) => {
     try {
       await autosave({ id: row._id as any, price: row.price as any, note: row.note ?? undefined });
-      // sau khi lưu, chuẩn hóa lại hiển thị theo định dạng
       if (idx !== undefined && items) {
         const next = [...items];
         next[idx] = { ...next[idx], priceStr: formatVnd(next[idx].price) };
         setLocalItems(next);
       }
-    } catch (e: any) {
-      // no toast for now to keep page quiet
+    } catch (e) {
       console.error(e);
     }
   };
@@ -85,24 +97,85 @@ export default function SurveyDetailPage({ params }: { params: Promise<{ id: str
       const next = [...items];
       next[idx] = { ...next[idx], price: null, priceStr: "" };
       setLocalItems(next);
-    } catch (e) {}
+    } catch {}
   };
 
   const onBulkClear = async () => {
     try {
       await bulkClear({ surveyId: survey._id as any });
       if (items) setLocalItems(items.map((it) => ({ ...it, price: null, priceStr: "" })));
-    } catch (e) {}
+    } catch {}
   };
+
+  const onChangeDay = async (value: string) => {
+    setDay(value);
+    try {
+      await updateSurveyDay({ id: survey._id as any, surveyDay: value });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const onConfirm = async () => {
+    try {
+      await confirmActive({ id: survey._id as any });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const onToggleActive = async () => {
+    try {
+      await toggleActive({ id: survey._id as any, active: !survey.active });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>
-            Đợt lấy giá: {survey.surveyDay} – {market?.name} – {member?.name}
-          </CardTitle>
+          <CardTitle className="uppercase tracking-wide">GIÁ NÔNG SẢN MỘT SỐ MẶT HÀNG</CardTitle>
         </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="text-sm">
+              <div className="text-muted-foreground">Chợ</div>
+              <div className="font-medium">{market?.name ?? "-"}</div>
+            </div>
+            <div className="text-sm">
+              <div className="text-muted-foreground">Địa chỉ</div>
+              <div className="font-medium">
+                {addressLabel(
+                  market?.addressJson?.provinceCode,
+                  market?.addressJson?.districtCode,
+                  market?.addressJson?.wardCode,
+                  market?.addressJson?.detail
+                ) || "-"}
+              </div>
+            </div>
+            <div className="text-sm">
+              <div className="text-muted-foreground">Thời điểm lấy giá</div>
+              <div className="flex items-center gap-2">
+                <Input type="date" value={day ?? ""} onChange={(e) => onChangeDay(e.target.value)} className="w-48" />
+              </div>
+            </div>
+            <div className="text-sm">
+              <div className="text-muted-foreground">Trạng thái khảo sát</div>
+              <div className="flex items-center gap-2">
+                <span className={survey.active ? "text-green-600 font-medium" : "text-gray-500"}>
+                  {survey.active ? "Đang dùng" : "Tạm tắt"}
+                </span>
+                <Button size="sm" onClick={onToggleActive}>
+                  {survey.active ? "Tắt" : "Kích hoạt"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
       </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Danh sách sản phẩm</CardTitle>
@@ -151,7 +224,7 @@ export default function SurveyDetailPage({ params }: { params: Promise<{ id: str
                       />
                     </td>
                     <td className="py-2 pr-0 text-right">
-                      <Button size="sm" variant="outline" onClick={() => onClearRow(it, idx)}>Xóa giá dòng</Button>
+                      <Button size="sm" variant="outline" onClick={() => onClearRow(it, idx)}>Xóa dòng</Button>
                     </td>
                   </tr>
                 ))}
@@ -163,44 +236,49 @@ export default function SurveyDetailPage({ params }: { params: Promise<{ id: str
           <div className="sm:hidden grid gap-3">
             {items?.map((it: any, idx: number) => (
               <div key={String(it._id)} className="rounded-md border p-3">
-                <div className="mb-2">
+                <div className="mb-2 flex items-start justify-between gap-2">
                   <div className="font-medium leading-tight">{it.productName}</div>
-                  <div className="text-xs text-muted-foreground">{it.unit?.abbr || it.unit?.name || ""}</div>
+                  <div className="shrink-0 text-xs text-muted-foreground">{it.unit?.abbr || it.unit?.name || ""}</div>
                 </div>
                 <div className="grid gap-2">
-                  <label className="text-xs text-muted-foreground">Giá (VND)</label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      value={it.priceStr ?? ""}
-                      onChange={(e) => onPriceChange(idx, e.target.value)}
-                      onBlur={() => onBlurSave(items[idx], idx)}
-                      placeholder="1.000.000"
-                      className="flex-1 text-right h-11 text-base"
-                    />
-                    <span className="text-xs text-muted-foreground">VND</span>
-                  </div>
+                  <label className="text-xs text-muted-foreground">Giá</label>
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    value={it.priceStr ?? ""}
+                    onChange={(e) => onPriceChange(idx, e.target.value)}
+                    onBlur={() => onBlurSave(items[idx], idx)}
+                    placeholder="1.000.000"
+                    className="flex-1 text-right h-11 text-base"
+                  />
                 </div>
                 <div className="mt-3 grid gap-2">
                   <label className="text-xs text-muted-foreground">Ghi chú</label>
-                  <textarea
+                  <Input
+                    type="text"
                     value={it.note ?? ""}
                     onChange={(e) => onNoteChange(idx, e.target.value)}
                     onBlur={() => onBlurSave(items[idx])}
-                    placeholder="Nhập ghi chú (tuỳ chọn)"
-                    rows={2}
-                    className="h-auto min-h-20 w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                    placeholder="Nhập ghi chú (tùy chọn)"
+                    className="h-9"
                   />
-                </div>
-                <div className="mt-3 flex justify-end">
-                  <Button size="sm" variant="outline" onClick={() => onClearRow(it, idx)}>Xóa giá dòng</Button>
                 </div>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
+
+      {/* Compact progress widget */}
+      <div className="fixed bottom-3 right-3 left-3 sm:left-auto sm:right-6 sm:bottom-6 z-40">
+        <div className="mx-auto max-w-md sm:max-w-xs rounded-md border bg-white/90 backdrop-blur px-3 py-2 shadow-sm">
+          <div className="mb-1 flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Tiến độ</span>
+            <span className="font-medium">{filledCount}/{totalCount}</span>
+          </div>
+          <Progress value={progressVal} className="h-1.5" />
+        </div>
+      </div>
     </div>
   );
 }

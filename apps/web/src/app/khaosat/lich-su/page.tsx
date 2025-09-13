@@ -28,16 +28,16 @@ export default function LichSuKhaoSat() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Lịch sử khảo sát</CardTitle>
+          <CardTitle>Lịch sử khảo sát giá nông sản</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap items-end gap-2">
             <div>
-              <div className="text-sm text-muted-foreground">Từ ngày</div>
+              <div className="text-sm text-muted-foreground">Chọn từ ngày</div>
               <Input type="date" value={fromDay} onChange={(e) => setFromDay(e.target.value)} />
             </div>
             <div>
-              <div className="text-sm text-muted-foreground">Đến ngày</div>
+              <div className="text-sm text-muted-foreground">Chọn đến ngày</div>
               <Input type="date" value={toDay} onChange={(e) => setToDay(e.target.value)} />
             </div>
           </div>
@@ -45,9 +45,9 @@ export default function LichSuKhaoSat() {
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
-                  <th className="py-2 pr-4">Ngày</th>
-                  <th className="py-2 pr-4">Chợ</th>
-                  <th className="py-2 pr-4 text-right">Xem</th>
+                  <th className="py-2 pr-4">Ngày khảo sát</th>
+                  <th className="py-2 pr-4">Chợ khảo sát</th>
+                  <th className="py-2 pr-4 text-right">Xem chi tiết</th>
                 </tr>
               </thead>
               <tbody>
@@ -55,14 +55,14 @@ export default function LichSuKhaoSat() {
                   <tr key={String(s._id)} className="border-b last:border-0">
                     <td className="py-2 pr-4">{s.surveyDay}</td>
                     <td className="py-2 pr-4">{s.marketName ?? ""}</td>
-                    <td className="py-2 pr-0 text-right"><Link className="underline" href={`/khaosat/${s._id}`}>Mở</Link></td>
+                    <td className="py-2 pr-0 text-right"><Link className="underline" href={`/khaosat/${s._id}`}>Xem chi tiết</Link></td>
                   </tr>
                 ))}
                 {list && (list as any[]).length === 0 && (
-                  <tr><td colSpan={3} className="py-6 text-center text-muted-foreground">Không có dữ liệu</td></tr>
+                  <tr><td colSpan={3} className="py-6 text-center text-muted-foreground">Không có dữ liệu khảo sát</td></tr>
                 )}
                 {!list && (
-                  <tr><td colSpan={3} className="py-6 text-center text-muted-foreground">Đang tải...</td></tr>
+                  <tr><td colSpan={3} className="py-6 text-center text-muted-foreground">Đang tải dữ liệu khảo sát...</td></tr>
                 )}
               </tbody>
             </table>

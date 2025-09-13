@@ -23,27 +23,27 @@ export default function KhaoSatHome() {
     if (!me) return;
     try {
       const s = await create({ marketId: marketId as any, memberId: me.sub as any, copyFromPrevious: true } as any);
-      toast.success("Đã tạo phiếu khảo sát");
+      toast.success("Đã tạo phiếu khảo sát thành công");
       location.href = `/khaosat/${(s as any)._id}`;
     } catch (e: any) {
-      toast.error(e?.message ?? "Tạo thất bại");
+      toast.error(e?.message ?? "Tạo phiếu khảo sát thất bại");
     }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Khảo sát giá</h2>
-        <Button asChild variant="outline"><Link href="/khaosat/lich-su">Lịch sử</Link></Button>
+        <h2 className="text-xl font-semibold">Khảo sát giá nông sản</h2>
+        <Button asChild variant="outline"><Link href="/khaosat/lich-su">Xem lịch sử khảo sát</Link></Button>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Chợ được phân công</CardTitle>
+          <CardTitle>Danh sách chợ được phân công</CardTitle>
         </CardHeader>
         <CardContent>
           {!markets && <div className="text-sm text-muted-foreground">Đang tải...</div>}
           {markets && (markets as any[]).length === 0 && (
-            <div className="text-sm text-muted-foreground">Chưa được phân công chợ nào.</div>
+            <div className="text-sm text-muted-foreground">Bạn chưa được phân công chợ nào.</div>
           )}
           <div className="grid gap-3">
             {(markets as any[] | undefined)?.map((m) => (
@@ -51,7 +51,7 @@ export default function KhaoSatHome() {
                 <div>
                   <div className="font-medium">{m.name}</div>
                 </div>
-                <Button size="sm" onClick={() => onCreate(m._id as any)}>Tạo khảo sát</Button>
+                <Button size="sm" onClick={() => onCreate(m._id as any)}>Tạo phiếu khảo sát</Button>
               </div>
             ))}
           </div>

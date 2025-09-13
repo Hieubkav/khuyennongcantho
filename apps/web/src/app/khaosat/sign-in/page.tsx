@@ -26,7 +26,7 @@ function SignInForm() {
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        toast.error(j?.error || "Đăng nhập thất bại");
+        toast.error(j?.error || "Đăng nhập không thành công");
         return;
       }
       router.replace(next as any);
@@ -40,18 +40,18 @@ function SignInForm() {
       <form onSubmit={onSubmit} className="space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle>Đăng nhập Khảo sát</CardTitle>
+            <CardTitle>Đăng nhập hệ thống khảo sát</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="grid gap-2">
-              <label htmlFor="username" className="text-sm">Tài khoản</label>
+              <label htmlFor="username" className="text-sm">Tên đăng nhập</label>
               <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus />
             </div>
             <div className="grid gap-2">
-              <label htmlFor="password" className="text-sm">Mật khẩu</label>
+              <label htmlFor="password" className="text-sm">Mật khẩu đăng nhập</label>
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
-            <Button type="submit" disabled={loading}>{loading ? "Đang đăng nhập..." : "Đăng nhập"}</Button>
+            <Button type="submit" disabled={loading}>{loading ? "Đang xử lý đăng nhập..." : "Đăng nhập hệ thống"}</Button>
           </CardContent>
         </Card>
       </form>

@@ -28,7 +28,8 @@ export const createForMarket = mutation({
       note: args.note,
       lastUpdatedAt: Date.now(),
       order: 0,
-      active: true,
+      // Default inactive until member confirms
+      active: false,
     });
 
     const products = await ctx.db
@@ -66,6 +67,27 @@ export const createForMarket = mutation({
       });
     }
     return await ctx.db.get(surveyId);
+  },
+});
+
+export const updateSurveyDay = mutation({
+  args: { id: v.id("surveys"), surveyDay: v.string() },
+  handler: async (ctx, args) => {
+    const s = await ctx.db.get(args.id);
+    if (!s) throw new Error("Survey not found");
+    await ctx.db.patch(args.id, { surveyDay: args.surveyDay, lastUpdatedAt: Date.now() });
+    return await ctx.db.get(args.id);
+  },
+});
+
+export const confirmActive = mutation({
+  args: { id: v.id("surveys") },
+  handler: async (ctx, args) => {
+    const s = await ctx.db.get(args.id);
+    if (!s) throw new Error("Survey not found");
+    if (s.active) return s; // already active
+    await ctx.db.patch(args.id, { active: true, lastUpdatedAt: Date.now() });
+    return await ctx.db.get(args.id);
   },
 });
 
@@ -131,6 +153,14 @@ export const deleteCascade = mutation({
   },
 });
 
+export const toggleActive = mutation({
+  args: { id: v.id("surveys"), active: v.boolean() },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.id, { active: args.active, lastUpdatedAt: Date.now() });
+    return await ctx.db.get(args.id);
+  },
+});
+
 export const lastInMarket = query({
   args: { marketId: v.id("markets") },
   handler: async (ctx, args) => {
@@ -185,6 +215,7 @@ export const listByRange = query({
       surveyDay: s.surveyDay,
       marketId: s.marketId,
       memberId: s.memberId,
+      active: s.active,
       marketName: marketDocs[i]?.name ?? null,
       memberName: memberDocs[i]?.name ?? null,
     }));
