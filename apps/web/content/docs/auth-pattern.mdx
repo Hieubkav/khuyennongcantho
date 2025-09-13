@@ -1,0 +1,226 @@
+---
+title: Pattern Auth Admin KISS (Next + Convex)
+description: Xác thực admin tối giản, bootstrap an toàn, khóa khu vực /dashboard, giới hạn quyền super admin
+---
+
+## Mục tiêu
+
+- KISS: không phụ thuộc thư viện auth nặng nề; dễ port sang dự án khác.
+- Có thể đăng nhập admin, tạo phiên bằng cookie HttpOnly đã ký HMAC.
+- Cơ chế bootstrap an toàn: nếu database chưa có admin, cho phép tạo admin đầu tiên khi đăng nhập.
+- Khóa toàn bộ `/dashboard/**` chỉ cho admin đã đăng nhập.
+- Quyền super admin (tối cao) qua biến môi trường `ADMIN_EMAIL`:
+  - Chỉ super admin mới được tạo/xóa admin khác.
+  - Không thể tắt (deactivate) super admin.
+
+## Sơ đồ thành phần
+
+- FE (Next App Router):
+  - Trang đăng nhập `/sign-in` (form POST tới API login).
+  - Middleware `/dashboard/**` kiểm tra cookie phiên (`adminSession`).
+  - Dropdown “Đăng xuất” → gọi API logout.
+  - Trang CRUD Admin/Member gọi API server để băm mật khẩu và gọi Convex.
+
+- API server (Next Route Handlers):
+  - `POST /api/admin/login`: đăng nhập, bootstrap admin đầu tiên khi DB trống.
+  - `POST /api/admin/logout`: xóa cookie phiên.
+  - `GET  /api/admin/me`: trả thông tin phiên (isSuper,…).
+  - `POST /api/admin/set-password`: tạo admin (chỉ super admin; trừ khi DB trống).
+  - `POST /api/admin/change-password`: đổi mật khẩu admin (yêu cầu đã đăng nhập).
+  - `POST /api/admin/delete`: xóa admin (chỉ super admin, cấm xóa super admin).
+  - `POST /api/members/create`: tạo member (yêu cầu đã đăng nhập).
+  - `POST /api/members/change-password`: đổi mật khẩu member (yêu cầu đã đăng nhập).
+
+- Convex backend:
+  - Module `admins.ts`: `create`, `update`, `changePassword`, `toggleActive`, `listBrief`, `getByUsernameWithHash`, `deleteById`.
+  - Module `members.ts`: đã có `create`, `updateProfile`, `changePassword`, `toggleActive`, `listBrief`.
+
+## Định dạng mật khẩu (server-side hash)
+
+- Băm PBKDF2 trên server (API route), không băm ở client.
+- Lưu trong DB theo chuỗi: `pbkdf2$<iterations>$<saltB64>$<hashB64>`.
+- Khi login: tách chuỗi, chạy PBKDF2 trên password nhập → so sánh với `hashB64`.
+
+Ví dụ mã băm (rút gọn, đã dùng trong route):
+
+```ts
+// Create hash
+const iter = 100_000
+const salt = crypto.randomBytes(16)
+crypto.pbkdf2(password, salt, iter, 32, 'sha256', (_e, derived) => {
+  const passwordHash = `pbkdf2$${iter}$${salt.toString('base64')}$${derived.toString('base64')}`
+})
+
+// Verify
+const [_, iterStr, saltB64, hashB64] = passwordHash.split('$')
+crypto.pbkdf2(password, Buffer.from(saltB64, 'base64'), Number(iterStr), 32, 'sha256', (_e, derived) => {
+  const ok = derived.toString('base64') === hashB64
+})
+```
+
+## Token phiên (cookie HttpOnly)
+
+- Dùng HMAC-SHA256 tự ký (không JWT bên ngoài) cho payload tối giản:
+  - Payload: `{"sub":"<adminId>","username":"<email>","name":"<name>","exp":<epoch_seconds>}` (được base64url).
+  - Token: `<payload_b64url>.<sig_b64url>`.
+  - Ký với `AUTH_SECRET` (hoặc `NEXTAUTH_SECRET` nếu dùng chung).
+- Lưu cookie `adminSession` với thuộc tính:
+  - `httpOnly: true`, `sameSite: 'lax'`.
+  - `secure: process.env.NODE_ENV === 'production'` (tương thích Vercel).
+  - `maxAge: 8 giờ`.
+
+## Luồng đăng nhập + bootstrap admin
+
+1) Người dùng gửi `POST /api/admin/login` với `username`, `password`.
+2) Server kiểm tra:
+   - Nếu DB chưa có admin:
+     - Nếu đặt `ADMIN_EMAIL` và `ADMIN_PASSWORD` trong env, chỉ cho bootstrap khi trùng cặp cấu hình.
+     - Nếu không đặt hai biến này, chấp nhận cặp đang nhập làm admin đầu tiên.
+     - Tạo bản ghi admin với hash PBKDF2 rồi tiếp tục cấp phiên.
+   - Nếu DB đã có admin: xác thực như bình thường.
+3) Trả cookie `adminSession` nếu thành công.
+
+## Bảo vệ `/dashboard/**`
+
+- Middleware đọc cookie `adminSession`, verify HMAC và `exp`.
+- Không hợp lệ → redirect `/sign-in?next=/dashboard/...`.
+- Gợi ý: tại layout dashboard có thể kiểm tra thêm để tránh nháy giao diện.
+
+## Quyền super admin
+
+- Xác định super admin qua env `ADMIN_EMAIL`.
+- Chỉ super admin mới được gọi các thao tác nhạy cảm:
+  - `POST /api/admin/set-password` (tạo admin mới) — ngoại lệ: DB trống.
+  - `POST /api/admin/delete` (xóa admin): không cho xóa super admin.
+- UI có thể ẩn/xám nút theo `GET /api/admin/me` (`{ ok, username, isSuper, superUsername }`).
+
+## Biến môi trường
+
+```text
+AUTH_SECRET=...              # khoá ký HMAC cookie phiên
+NEXT_PUBLIC_CONVEX_URL=...   # URL Convex
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=changeme      # chỉ dùng cho bootstrap lần đầu; có thể xoá sau khi đã có admin
+```
+
+## Tập tin & vị trí (tham chiếu dự án mẫu)
+
+- FE routes & middleware:
+  - `apps/web/src/app/sign-in/page.tsx`
+  - `apps/web/src/middleware.ts`
+  - `apps/web/src/components/profile-dropdown.tsx` (Đăng xuất)
+  - `apps/web/src/components/layout/data/sidebar-data.ts` (thêm link Admin/Member)
+
+- API routes:
+  - `apps/web/src/app/api/admin/login/route.ts`
+  - `apps/web/src/app/api/admin/logout/route.ts`
+  - `apps/web/src/app/api/admin/me/route.ts`
+  - `apps/web/src/app/api/admin/set-password/route.ts`
+  - `apps/web/src/app/api/admin/change-password/route.ts`
+  - `apps/web/src/app/api/admin/delete/route.ts`
+  - `apps/web/src/app/api/members/create/route.ts`
+  - `apps/web/src/app/api/members/change-password/route.ts`
+
+- Session utils:
+  - `apps/web/src/lib/session.ts` (ký/verify HMAC, base64url, exp)
+
+- Convex backend:
+  - `packages/backend/convex/admins.ts`
+  - `packages/backend/convex/members.ts` (sẵn)
+
+## Checklist triển khai nhanh cho dự án khác
+
+1) Tạo bảng `admins` trong schema Convex (kèm index `by_username`, `by_active`).
+2) Thêm module Convex `admins.ts` với các hàm:
+   - `create`, `update`, `changePassword`, `toggleActive`, `listBrief`, `getByUsernameWithHash`, `deleteById`.
+3) Thêm `lib/session.ts` để ký/verify HMAC.
+4) Thêm API routes đăng nhập, tạo/xóa/đổi mật khẩu admin, tạo/đổi mật khẩu member.
+5) Thêm middleware chặn `/dashboard/**`.
+6) Tạo trang `/sign-in` + nút “Đăng xuất”.
+7) (Tùy chọn) Ẩn nút thao tác nhạy cảm trên UI khi không phải super admin (dùng `/api/admin/me`).
+8) Đặt env: `AUTH_SECRET`, `NEXT_PUBLIC_CONVEX_URL`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` (bootstrap).
+
+## Gợi ý bảo mật & vận hành
+
+- Luôn dùng HTTPS (Vercel production đặt `secure=true` qua `NODE_ENV=production`).
+- Có thể thêm rate-limit cho `/api/admin/login`.
+- Thêm “không cho tắt admin cuối cùng đang active” ở backend nếu dùng mô hình nhiều admin.
+- Sau bootstrap thành công, có thể xoá `ADMIN_PASSWORD` khỏi env.
+
+## Câu hỏi thường gặp
+
+- “Có thể dùng NextAuth thay cho cơ chế này?”
+  - Được. Pattern này chọn KISS, không phụ thuộc provider ngoài. Với NextAuth, vẫn có thể tái dùng Convex cho dữ liệu.
+
+- “Có cần lưu refresh token?”
+  - Không. Cookie phiên có `exp` ngắn (8h); khi hết hạn người dùng đăng nhập lại.
+
+- “Có cần mã hoá cookie?”
+  - Cookie đã là HttpOnly và ký HMAC; payload không chứa thông tin nhạy cảm (chỉ `sub`, `username`, `name`, `exp`).
+
+## Chi tiết kỹ thuật (đào sâu)
+
+### HMAC token — tạo và kiểm tra
+
+- Tạo token:
+  - B1: sinh payload JSON: `{"sub":"<id>","username":"<email>","name":"<name>","exp":<epoch_seconds>}`.
+  - B2: base64url payload → `payload_b64` (không dấu `=`; `+`→`-`, `/`→`_`).
+  - B3: ký HMAC-SHA256: `sig = HMAC_SHA256(AUTH_SECRET, payload_b64)` → base64url `sig_b64`.
+  - B4: token cuối: ``payload_b64.sig_b64``.
+- Kiểm tra token (middleware/API):
+  - B1: tách token theo dấu chấm thành `payload_b64` và `sig_b64`.
+  - B2: verify HMAC với `AUTH_SECRET` bằng API crypto của môi trường đang chạy.
+  - B3: parse payload (giải base64) → kiểm `exp` lớn hơn “bây giờ” (epoch seconds).
+  - Nếu cả hai điều kiện đúng → hợp lệ.
+
+### Vì sao không dùng JWT thư viện?
+
+- Ở đây chỉ cần 1 trường hợp sử dụng: cookie phiên cho admin; KISS → tự ký HMAC đủ dùng.
+- Giảm phụ thuộc, dễ port, dễ đọc code. Khi cần mở rộng (refresh token, multi‑role phức tạp) có thể thay bằng NextAuth/JWT sau.
+
+### PBKDF2 — vì sao chọn?
+
+- Có sẵn trong Node và WebCrypto, dễ dùng, không cần native modules.
+- Với `100_000` vòng + salt 16 bytes là mức hợp lý cho dự án vừa nhỏ vừa nhanh triển khai.
+- Lưu ý: nếu yêu cầu bảo mật cao, cân nhắc `argon2id` (cần native/bundling) hoặc tăng vòng khi tài nguyên cho phép.
+
+### Bootstrap admin — hộp thư “niêm phong” lần đầu
+
+- Khi DB trống: cho phép người đầu tiên đăng nhập trở thành admin.
+- Nếu đặt `ADMIN_EMAIL` và `ADMIN_PASSWORD`, chỉ cặp này mới bootstrap được (tránh ai đó “cướp” lần đầu).
+- Sau bootstrap: mọi thao tác tạo/xóa admin cần phiên của super admin (username == `ADMIN_EMAIL`).
+
+## Feynman giải thích (kể như cho người 12 tuổi)
+
+- Hãy tưởng tượng có tờ phiếu ra vào khu vực quản lý (dashboard). Trên phiếu có 2 phần:
+  - Dòng chữ ghi: “Ai, tên gì, hết hạn lúc mấy giờ” → đây là “payload”.
+  - Con dấu bí mật của ban tổ chức đóng lên → đây là “chữ ký HMAC”.
+- Khi bạn đăng nhập, server viết phiếu (payload), đóng dấu (HMAC) và đưa bạn cất trong túi (cookie HttpOnly). Trình duyệt mang phiếu đó tới cửa mỗi lần vào dashboard.
+- Bảo vệ cửa (middleware) chỉ làm 2 việc đơn giản:
+  - So dấu: con dấu có đúng của ban tổ chức không (verify HMAC với `AUTH_SECRET`)?
+  - So giờ: phiếu còn hạn không (`exp` > bây giờ)?
+  - Nếu cả hai ổn → mời vào; nếu không → mời quay lại quầy đăng nhập.
+- Mật khẩu của admin không bao giờ gửi thẳng lên bảng; trước khi lưu, server trộn mật khẩu với muối (salt) và khuấy 100.000 lần (PBKDF2) để biến thành “cháo” (hash). Dù ai đó xem sổ, cũng chỉ thấy bát cháo, không thấy mật khẩu ban đầu.
+- Người “tối cao” là admin có email trùng `ADMIN_EMAIL`. Người này mới có chìa khoá mở phòng “tạo/xóa admin”. Chìa khoá này không phải là quyền đặc biệt bí ẩn — chỉ là ta so sánh `username` trong phiếu với `ADMIN_EMAIL` mà thôi.
+
+## Pitfall & lưu ý triển khai
+
+- Cookie `secure`:
+  - Dùng `secure: process.env.NODE_ENV === 'production'` để test ở localhost (HTTP) vẫn hoạt động; trên Vercel sẽ tự bật secure.
+- Đồng hồ hệ thống:
+  - `exp` so với “bây giờ” của server edge/function; lệch giờ lớn có thể khiến phiên hết hạn sớm hoặc muộn.
+- Không đưa dữ liệu nhạy cảm vào payload:
+  - Payload chỉ nên có `sub`, `username`, `name`, `exp`. Không nhét quyền chi tiết hay bất kỳ bí mật nào.
+- Khóa nghiệp vụ phía BE:
+  - Khi cần, thêm kiểm tra ở Convex (ví dụ: cấm tắt admin cuối cùng) để chống gọi API trực tiếp.
+
+## Tuỳ biến nhanh cho dự án khác
+
+- Thêm vai trò khác (ví dụ `manager`, `editor`):
+  - Thêm cờ `role` vào payload (ví dụ `{"role":"manager"}`) và middleware phân quyền theo route.
+  - Lưu role ở DB admin; khi login, nhúng vào payload.
+- Thay đổi thời gian phiên:
+  - Đặt `exp` ngắn, ví dụ 2 giờ; thêm nút “Giữ đăng nhập” để tăng 8 giờ nếu cần.
+- Đổi thuật toán băm:
+  - Thay PBKDF2 bằng `argon2id` nếu hạ tầng cho phép (mạnh hơn với tấn công GPU).
+

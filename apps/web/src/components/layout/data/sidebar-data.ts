@@ -43,48 +43,8 @@ export const sidebarData: SidebarData = {
         { title: 'Chợ', url: '/dashboard/markets', icon: ListTodo },
         { title: 'Sản phẩm', url: '/dashboard/products', icon: Package },
         { title: 'Đơn vị', url: '/dashboard/units', icon: ListTodo },
-        { title: 'Users', url: '/users', icon: Users },
-      ],
-    },
-    {
-      title: 'Pages',
-      items: [
-        {
-          title: 'Auth',
-          icon: ShieldCheck,
-          items: [
-            { title: 'Sign In', url: '/sign-in' },
-            { title: 'Sign Up', url: '/sign-up' },
-          ],
-        },
-        {
-          title: 'Errors',
-          icon: Bug,
-          items: [
-            { title: 'Unauthorized', url: '/errors/unauthorized', icon: Lock },
-            { title: 'Forbidden', url: '/errors/forbidden', icon: UserX },
-            { title: 'Not Found', url: '/errors/not-found', icon: FileX },
-            { title: 'Internal Server Error', url: '/errors/internal-server-error', icon: ServerOff },
-            { title: 'Maintenance Error', url: '/errors/maintenance-error', icon: Construction },
-          ],
-        },
-      ],
-    },
-    {
-      title: 'Other',
-      items: [
-        {
-          title: 'Settings',
-          icon: Settings,
-          items: [
-            { title: 'Profile', url: '/settings', icon: UserCog },
-            { title: 'Account', url: '/settings/account', icon: Wrench },
-            { title: 'Appearance', url: '/settings/appearance', icon: Palette },
-            { title: 'Notifications', url: '/settings/notifications', icon: Bell },
-            { title: 'Display', url: '/settings/display', icon: Monitor },
-          ],
-        },
-        { title: 'Help Center', url: '/help-center', icon: HelpCircle },
+        { title: 'Quản trị viên', url: '/dashboard/admins', icon: ShieldCheck },
+        { title: 'Nhân viên', url: '/dashboard/members', icon: Users },
       ],
     },
   ],

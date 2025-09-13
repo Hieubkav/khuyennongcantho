@@ -1,22 +1,19 @@
 "use client";
 import { useLayout } from '@/context/layout-provider'
-import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, useSidebar } from '@/components/ui/sidebar'
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from '@/components/ui/sidebar'
 import { sidebarData } from './data/sidebar-data'
 import { NavGroup } from './nav-group'
 
 export function AppSidebar() {
   const { collapsible, variant } = useLayout()
-  const { state } = useSidebar()
   return (
     <Sidebar collapsible={collapsible} variant={variant}>
-      {state === 'expanded' && (
-        <SidebarHeader>
-          <div className="px-2 py-1.5">
-            <div className="text-sm font-semibold">Khuyến nông Cần Thơ</div>
-            <div className="text-muted-foreground text-xs">Dashboard</div>
-          </div>
-        </SidebarHeader>
-      )}
+      <SidebarHeader>
+        <div className="px-2 py-1.5">
+          <div className="text-sm font-semibold">Khuyến nông Cần Thơ</div>
+          <div className="text-muted-foreground text-xs">Dashboard</div>
+        </div>
+      </SidebarHeader>
       <SidebarContent>
         {sidebarData.navGroups.map((props) => (
           <NavGroup key={props.title} {...props} />
