@@ -72,7 +72,7 @@ export const safeDelete = mutation({
       return {
         success: false,
         code: "REFERENCED",
-        message: "Cannot delete unit: referenced by products",
+        message: "Không thể xóa đơn vị: đang được tham chiếu bởi các sản phẩm",
         refs: [
           {
             table: "products",

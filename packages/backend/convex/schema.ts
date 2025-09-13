@@ -102,7 +102,9 @@ export default defineSchema({
     note: v.optional(v.string()),
     order: v.number(), // copy from product.order for stable display
     active: v.boolean(),
-  }).index("by_surveyId", ["surveyId"]),
+  })
+    .index("by_surveyId", ["surveyId"]) // existing
+    .index("by_productId", ["productId"]), // for ref checks
 
   // Reports (immutable snapshot summary)
   reports: defineTable({
@@ -144,5 +146,6 @@ export default defineSchema({
     order: v.number(),
   })
     .index("by_reportId", ["reportId"]) // fetch all items for a report
-    .index("by_report_market", ["reportId", "marketId"]), // filter per market within report
+    .index("by_report_market", ["reportId", "marketId"]) // filter per market within report
+    .index("by_productId", ["productId"]), // for ref checks
 });

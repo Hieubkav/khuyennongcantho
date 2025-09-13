@@ -8,8 +8,10 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export default function UnitEditClient({ id }: { id: string }) {
+  const router = useRouter();
   const list = useQuery(api.units.listBrief, {});
   const update = useMutation(api.units.update);
 
@@ -20,7 +22,6 @@ export default function UnitEditClient({ id }: { id: string }) {
   const [order, setOrder] = useState<number>(current?.order ?? 0);
   const [saving, setSaving] = useState(false);
 
-  // hydrate initial values when data loads
   useEffect(() => {
     if (current) {
       setName(current.name ?? "");
@@ -73,17 +74,31 @@ export default function UnitEditClient({ id }: { id: string }) {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="order">Thứ tự</Label>
-              <Input
-                id="order"
-                type="number"
-                value={order}
-                onChange={(e) => setOrder(Number(e.target.value))}
-              />
+              <Input id="order" type="number" value={order} onChange={(e) => setOrder(Number(e.target.value))} />
             </div>
           </CardContent>
           <CardFooter className="flex items-center justify-end gap-2">
             <Button type="button" variant="ghost" asChild>
               <Link href="/dashboard/units">Hủy</Link>
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={async () => {
+                if (!current) return;
+                try {
+                  setSaving(true);
+                  await update({ id: current._id as any, name, abbr: abbr || undefined, order });
+                  router.push("/dashboard/units/new");
+                } catch (err: any) {
+                  toast.error(err?.message ?? "Cập nhật thất bại");
+                } finally {
+                  setSaving(false);
+                }
+              }}
+              disabled={saving}
+            >
+              {saving ? "Đang lưu..." : "Lưu & tạo mới"}
             </Button>
             <Button type="submit" disabled={saving}>{saving ? "Đang lưu..." : "Lưu"}</Button>
           </CardFooter>
@@ -92,3 +107,4 @@ export default function UnitEditClient({ id }: { id: string }) {
     </div>
   );
 }
+

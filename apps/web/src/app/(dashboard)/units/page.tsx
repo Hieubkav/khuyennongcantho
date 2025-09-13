@@ -17,24 +17,22 @@ export default function UnitsListPage() {
   const toggleActive = useMutation(api.units.toggleActive);
   const doReorder = useMutation(api.units.reorder);
 
-  // Local list for drag-sort UI
   const [list, setList] = useState<any[] | undefined>(undefined);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("active");
   const [sortBy, setSortBy] = useState<"order" | "name">("order");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const allowDrag = !q.trim() && sortBy === "order" && statusFilter === "all";
 
-  // keep local list in sync with server data
   useEffect(() => {
-    if (units) setList(units);
+    if (units) setList(units as any);
     else setList(undefined);
   }, [units]);
 
   const filtered = useMemo(() => {
-    if (!list) return undefined; // loading
+    if (!list) return undefined as any[] | undefined;
     let base = !q
       ? list
-      : list.filter((u) => [u.name, u.abbr ?? ""].some((t) => t.toLowerCase().includes(q.toLowerCase())));
+      : list.filter((u) => [u.name, u.abbr ?? ""].some((t) => (t || "").toLowerCase().includes(q.toLowerCase())));
     if (statusFilter !== "all") {
       const wantActive = statusFilter === "active";
       base = base.filter((u) => !!u.active === wantActive);
@@ -53,10 +51,16 @@ export default function UnitsListPage() {
 
   const toggleSortName = () => {
     if (sortBy !== "name") {
+      // 1st click: sort by name ASC
       setSortBy("name");
       setSortDir("asc");
+    } else if (sortDir === "asc") {
+      // 2nd click: sort by name DESC
+      setSortDir("desc");
     } else {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+      // 3rd click: back to default (order ASC)
+      setSortBy("order");
+      setSortDir("asc");
     }
   };
 
@@ -65,43 +69,28 @@ export default function UnitsListPage() {
     setSortDir("asc");
   };
 
-    const onDelete = async (id: string, name: string) => {
+  const onDelete = async (id: string, name: string) => {
     try {
       const res = await doDelete({ id: id as any });
-      if (res && typeof res === "object" && "success" in res && !res.success) {
+      if (res && typeof res === "object" && "success" in res && !(res as any).success) {
         const refs: any[] | undefined = (res as any).refs;
         if (Array.isArray(refs) && refs.length > 0) {
           const labelMap: Record<string, string> = { products: "Sản phẩm" };
-          const Description = (
-            <div className="space-y-2">
-              <div className="text-sm">
-                Đơn vị đang được sử dụng. Vui lòng cập nhật/xóa các bản ghi bên dưới trước khi xóa đơn vị.
-              </div>
-              <ul className="list-disc list-inside space-y-1">
-                {refs.map((r: any) => {
-                  const table: string = r.table || "unknown";
-                  const count: number = r.count ?? 0;
-                  const samples: any[] = Array.isArray(r.samples) ? r.samples : [];
-                  const labels = samples.map((s: any) => s?.name || s?.id || "...");
-                  const extra = Math.max(0, count - labels.length);
-                  const head = `${labelMap[table] ?? table}: ${count} bản ghi`;
-                  return (
-                    <li key={`${table}-${count}`}>
-                      <div className="font-medium">{head}</div>
-                      {labels.length > 0 && (
-                        <div className="text-xs text-muted-foreground">
-                          Ví dụ: {labels.join(", ")}{extra > 0 ? ` … (+${extra})` : ""}
-                        </div>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          );
-          toast.error("Không thể xóa đơn vị", { description: Description });
+          const parts: string[] = refs.map((r) => {
+            const table: string = r.table || "unknown";
+            const count: number = r.count ?? 0;
+            const samples: any[] = Array.isArray(r.samples) ? r.samples : [];
+            const labels = samples.map((s: any) => s?.name || s?.id || "...");
+            const extra = Math.max(0, count - labels.length);
+            const head = `${labelMap[table] ?? table}: ${count}`;
+            const sampleStr = labels.length ? `; ví dụ: ${labels.join(", ")}` : "";
+            const moreStr = extra > 0 ? ` … (+${extra})` : "";
+            return head + sampleStr + moreStr;
+          });
+          toast.error(`Không thể xóa vì đang được tham chiếu | ` + parts.join(" | "));
         } else {
-          toast.error((res as any).message || "Không thể xóa đơn vị vì đang được tham chiếu");
+          const reason = (res as any).message || "Không thể xóa đơn vị vì đang được tham chiếu";
+          toast.error(reason);
         }
         return;
       }
@@ -132,12 +121,11 @@ export default function UnitsListPage() {
     const to = list.findIndex((u) => String(u._id) === String(targetId));
     if (from < 0 || to < 0 || from === to) return;
     const newList = arrayMove(list, from, to);
-    setList(newList); // optimistic
+    setList(newList);
     try {
       await doReorder({ items: newList.map((u, idx) => ({ id: u._id as any, order: idx })) });
     } catch (err: any) {
       toast.error(err?.message ?? "Sắp xếp thất bại");
-      // fall back to server state on next refresh
     }
   };
 
@@ -177,7 +165,16 @@ export default function UnitsListPage() {
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
-                  <th className="py-2 pr-4 w-10">&nbsp;</th>
+                  <th className="py-2 pr-4 w-16">
+                    <button
+                      type="button"
+                      className="hover:underline cursor-pointer select-none"
+                      onClick={resetSortOrder}
+                      title="Hiển thị theo thứ tự đã sắp xếp"
+                    >
+                      STT
+                    </button>
+                  </th>
                   <th className="py-2 pr-4">
                     <button
                       type="button"
@@ -185,7 +182,7 @@ export default function UnitsListPage() {
                       onClick={toggleSortName}
                       title="Sắp xếp theo tên"
                     >
-                      Tên
+                      Đơn vị tính
                       {sortBy === "name" ? (
                         sortDir === "asc" ? (
                           <ArrowUp className="h-3.5 w-3.5" />
@@ -198,22 +195,12 @@ export default function UnitsListPage() {
                     </button>
                   </th>
                   <th className="py-2 pr-4">Viết tắt</th>
-                  <th className="py-2 pr-4">
-                    <button
-                      type="button"
-                      className="hover:underline cursor-pointer select-none"
-                      onClick={resetSortOrder}
-                      title="Hiển thị theo thứ tự đã sắp xếp"
-                    >
-                      Thứ tự
-                    </button>
-                  </th>
                   <th className="py-2 pr-4">Trạng thái</th>
                   <th className="py-2 pr-4 text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered?.map((u) => (
+                {filtered?.map((u, idx) => (
                   <tr
                     key={u._id}
                     className="border-b last:border-0"
@@ -241,10 +228,10 @@ export default function UnitsListPage() {
                       >
                         <GripVertical className="h-4 w-4" />
                       </span>
+                      <span className="ml-2">{idx + 1}</span>
                     </td>
                     <td className="py-2 pr-4 font-medium">{u.name}</td>
                     <td className="py-2 pr-4">{u.abbr ?? "-"}</td>
-                    <td className="py-2 pr-4">{u.order ?? 0}</td>
                     <td className="py-2 pr-4">
                       <span
                         className={
@@ -276,14 +263,14 @@ export default function UnitsListPage() {
                 ))}
                 {filtered !== undefined && filtered.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="py-8 text-center text-muted-foreground">
+                    <td colSpan={5} className="py-8 text-center text-muted-foreground">
                       Không có dữ liệu
                     </td>
                   </tr>
                 )}
                 {filtered === undefined && (
                   <tr>
-                    <td colSpan={4} className="py-8 text-center text-muted-foreground">
+                    <td colSpan={5} className="py-8 text-center text-muted-foreground">
                       Đang tải...
                     </td>
                   </tr>
@@ -296,3 +283,4 @@ export default function UnitsListPage() {
     </div>
   );
 }
+

@@ -33,6 +33,21 @@ export default function UnitCreatePage() {
     }
   };
 
+  const onSubmitAndNew = async () => {
+    try {
+      setSaving(true);
+      await create({ name, abbr: abbr || undefined, order });
+      toast.success("Đã tạo, tiếp tục tạo mới");
+      setName("");
+      setAbbr("");
+      setOrder(0);
+    } catch (err: any) {
+      toast.error(err?.message ?? "Tạo thất bại");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="mx-auto w-full max-w-2xl">
       <form onSubmit={onSubmit}>
@@ -51,18 +66,14 @@ export default function UnitCreatePage() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="order">Thứ tự</Label>
-              <Input
-                id="order"
-                type="number"
-                value={order}
-                onChange={(e) => setOrder(Number(e.target.value))}
-              />
+              <Input id="order" type="number" value={order} onChange={(e) => setOrder(Number(e.target.value))} />
             </div>
           </CardContent>
           <CardFooter className="flex items-center justify-end gap-2">
             <Button type="button" variant="ghost" asChild>
               <Link href="/dashboard/units">Hủy</Link>
             </Button>
+            <Button type="button" variant="secondary" onClick={onSubmitAndNew} disabled={saving}>{saving ? "Đang lưu..." : "Lưu & tạo mới"}</Button>
             <Button type="submit" disabled={saving}>{saving ? "Đang lưu..." : "Lưu"}</Button>
           </CardFooter>
         </Card>
@@ -70,3 +81,4 @@ export default function UnitCreatePage() {
     </div>
   );
 }
+

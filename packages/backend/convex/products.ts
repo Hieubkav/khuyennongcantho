@@ -133,7 +133,7 @@ export const safeDelete = mutation({
       return {
         success: false,
         code: "REFERENCED",
-        message: "Cannot delete product: referenced by other records",
+        message: "Không thể xóa sản phẩm: đang được tham chiếu bởi các bản ghi khác",
         refs: [
           ...(surveyItemsCount
             ? [
@@ -170,5 +170,34 @@ export const reorder = mutation({
       await ctx.db.patch(it.id, { order: it.order });
     }
     return { success: true };
+  },
+});
+
+// Reference summary for UI helper text
+export const refSummary = query({
+  args: { id: v.id("products"), limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const limit = Math.max(0, Math.min(args.limit ?? 3, 50));
+
+    const surveyItems = await ctx.db
+      .query("surveyItems")
+      .filter((q) => q.eq(q.field("productId"), args.id))
+      .collect();
+    const surveyItemsCount = surveyItems.length;
+    const surveyItemSamples = surveyItems.slice(0, limit).map((it) => ({ surveyId: it.surveyId }));
+
+    const reportItems = await ctx.db
+      .query("reportItems")
+      .filter((q) => q.eq(q.field("productId"), args.id))
+      .collect();
+    const reportItemsCount = reportItems.length;
+    const reportItemSamples = reportItems.slice(0, limit).map((it) => ({ reportId: (it as any).reportId }));
+
+    return {
+      refs: [
+        { table: "surveyItems", count: surveyItemsCount, samples: surveyItemSamples },
+        { table: "reportItems", count: reportItemsCount, samples: reportItemSamples },
+      ],
+    } as const;
   },
 });

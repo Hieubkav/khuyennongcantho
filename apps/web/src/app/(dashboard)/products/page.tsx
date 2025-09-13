@@ -7,8 +7,9 @@ import { api } from "@dohy/backend/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BadgeCheck, Edit, Plus, Search, Trash2, GripVertical, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { BadgeCheck, Edit, Plus, Search, Trash2, GripVertical, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 export default function ProductsListPage() {
   const [q, setQ] = useState("");
@@ -274,9 +275,7 @@ export default function ProductsListPage() {
                             <Edit className="mr-2 h-4 w-4" /> Sửa
                           </Link>
                         </Button>
-                        <Button size="sm" variant="destructive" onClick={() => onDelete(p._id as any, p.name)}>
-                          <Trash2 className="mr-2 h-4 w-4" /> Xóa
-                        </Button>
+                        <ProductDeleteButton id={p._id as any} name={p.name} onDelete={() => onDelete(p._id as any, p.name)} />
                       </div>
                     </td>
                   </tr>
@@ -302,4 +301,40 @@ export default function ProductsListPage() {
       </Card>
     </div>
   );
+}
+
+function ProductDeleteButton({ id, name, onDelete }: { id: string; name: string; onDelete: () => void }) {
+  const summary = useQuery(api.products.refSummary as any, { id: id as any, limit: 3 } as any) as any;
+  const refs = summary?.refs ?? [];
+  const total = Array.isArray(refs) ? refs.reduce((acc: number, r: any) => acc + (r?.count ?? 0), 0) : 0;
+  const hasRefs = total > 0;
+  const labelMap: Record<string, string> = { surveyItems: "Dòng khảo sát", reportItems: "Dòng báo cáo" };
+  const Description = (
+    <div className="space-y-1">
+      <div className="text-sm">Sản phẩm đang có quan hệ với dữ liệu khác.</div>
+      <div className="text-xs text-muted-foreground">Khuyến nghị: dùng nút "Tắt" để ẩn thay vì xóa.</div>
+      {hasRefs && (
+        <ul className="list-disc list-inside text-xs">
+          {refs.map((r: any) => (
+            <li key={r.table}>{(labelMap[r.table] ?? r.table) + ": " + (r.count ?? 0)}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
+  const btn = (
+    <Button size="sm" variant="destructive" onClick={onDelete}>
+      {hasRefs ? <AlertTriangle className="mr-2 h-4 w-4" /> : <Trash2 className="mr-2 h-4 w-4" />}
+      Xóa
+    </Button>
+  );
+
+  if (!hasRefs) return btn as any;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{btn as any}</TooltipTrigger>
+      <TooltipContent side="top">{Description as any}</TooltipContent>
+    </Tooltip>
+  ) as any;
 }
