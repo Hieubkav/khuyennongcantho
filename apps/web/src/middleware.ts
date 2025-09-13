@@ -53,9 +53,19 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(url);
     }
   }
+  if (path.startsWith("/khaosat") && path !== "/khaosat/sign-in") {
+    const token = req.cookies.get("memberSession")?.value;
+    const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "";
+    if (!token || !secret || !(await verify(token, secret))) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/khaosat/sign-in";
+      url.searchParams.set("next", path);
+      return NextResponse.redirect(url);
+    }
+  }
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*"],
+  matcher: ["/dashboard/:path*", "/khaosat/:path*"],
 };

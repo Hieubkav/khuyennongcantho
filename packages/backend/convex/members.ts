@@ -54,6 +54,24 @@ export const changePassword = mutation({
   },
 });
 
+export const getByUsernameWithHash = query({
+  args: { username: v.string() },
+  handler: async (ctx, args) => {
+    const row = await ctx.db
+      .query("members")
+      .withIndex("by_username", (q) => q.eq("username", args.username))
+      .first();
+    if (!row) return null as any;
+    return {
+      _id: row._id,
+      username: row.username,
+      passwordHash: row.passwordHash,
+      name: row.name,
+      active: row.active,
+    } as const;
+  },
+});
+
 export const toggleActive = mutation({
   args: { id: v.id("members"), active: v.boolean() },
   handler: async (ctx, args) => {

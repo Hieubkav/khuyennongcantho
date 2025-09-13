@@ -33,3 +33,27 @@ export function verifyAdminSession(token: string, secret: string): AdminClaims |
   return claims;
 }
 
+// Member session (same format, separated type for clarity)
+export type MemberClaims = {
+  sub: string; // member _id
+  username: string;
+  name?: string;
+  exp: number;
+};
+
+export function signMemberSession(claims: MemberClaims, secret: string) {
+  const payload = b64url(JSON.stringify(claims));
+  const sig = crypto.createHmac("sha256", secret).update(payload).digest();
+  const token = `${payload}.${b64url(sig)}`;
+  return token;
+}
+
+export function verifyMemberSession(token: string, secret: string): MemberClaims | null {
+  const [payload, sig] = token.split(".");
+  if (!payload || !sig) return null;
+  const expect = b64url(crypto.createHmac("sha256", secret).update(payload).digest());
+  if (crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expect)) === false) return null;
+  const claims = JSON.parse(Buffer.from(payload, "base64").toString("utf8")) as MemberClaims;
+  if (typeof claims.exp !== "number" || Date.now() / 1000 > claims.exp) return null;
+  return claims;
+}
