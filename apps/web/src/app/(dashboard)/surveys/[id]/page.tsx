@@ -111,7 +111,8 @@ export default function SurveyDetailPage({ params }: { params: Promise<{ id: str
           <div className="flex justify-end">
             <Button size="sm" variant="secondary" onClick={onBulkClear}>Xóa mọi giá</Button>
           </div>
-          <div className="overflow-x-auto">
+          {/* Desktop/tablet view */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
@@ -156,6 +157,47 @@ export default function SurveyDetailPage({ params }: { params: Promise<{ id: str
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile-friendly stacked cards */}
+          <div className="sm:hidden grid gap-3">
+            {items?.map((it: any, idx: number) => (
+              <div key={String(it._id)} className="rounded-md border p-3">
+                <div className="mb-2">
+                  <div className="font-medium leading-tight">{it.productName}</div>
+                  <div className="text-xs text-muted-foreground">{it.unit?.abbr || it.unit?.name || ""}</div>
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-xs text-muted-foreground">Giá (VND)</label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={it.priceStr ?? ""}
+                      onChange={(e) => onPriceChange(idx, e.target.value)}
+                      onBlur={() => onBlurSave(items[idx], idx)}
+                      placeholder="1.000.000"
+                      className="flex-1 text-right h-11 text-base"
+                    />
+                    <span className="text-xs text-muted-foreground">VND</span>
+                  </div>
+                </div>
+                <div className="mt-3 grid gap-2">
+                  <label className="text-xs text-muted-foreground">Ghi chú</label>
+                  <textarea
+                    value={it.note ?? ""}
+                    onChange={(e) => onNoteChange(idx, e.target.value)}
+                    onBlur={() => onBlurSave(items[idx])}
+                    placeholder="Nhập ghi chú (tuỳ chọn)"
+                    rows={2}
+                    className="h-auto min-h-20 w-full rounded-md border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                  />
+                </div>
+                <div className="mt-3 flex justify-end">
+                  <Button size="sm" variant="outline" onClick={() => onClearRow(it, idx)}>Xóa giá dòng</Button>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
