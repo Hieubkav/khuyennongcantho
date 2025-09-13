@@ -18,7 +18,7 @@ export default function ProductsListPage() {
   const doReorder = useMutation(api.products.reorder);
 
   const [list, setList] = useState<any[] | undefined>(undefined);
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("active");
   const [sortBy, setSortBy] = useState<"order" | "name">("order");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const allowDrag = !q.trim() && sortBy === "order" && statusFilter === "all";
@@ -51,7 +51,55 @@ export default function ProductsListPage() {
 
   const onDelete = async (id: string, name: string) => {
     try {
-      await doDelete({ id: id as any });
+      const res = await doDelete({ id: id as any });
+      if (res && typeof res === "object" && "success" in res && !res.success) {
+        // Xây nội dung chi tiết nếu server trả về refs
+        const refs: any[] | undefined = (res as any).refs;
+        if (Array.isArray(refs) && refs.length > 0) {
+          const labelMap: Record<string, string> = {
+            surveyItems: "Dòng khảo sát",
+            reportItems: "Dòng báo cáo",
+          };
+          const Description = (
+            <div className="space-y-2">
+              <div className="text-sm">
+                Sản phẩm đang được sử dụng bởi các dữ liệu sau. Vui lòng xóa/cập nhật các bản ghi này trước khi xóa sản phẩm.
+              </div>
+              <ul className="list-disc list-inside space-y-1">
+                {refs.map((r: any) => {
+                  const table: string = r.table || "unknown";
+                  const count: number = r.count ?? 0;
+                  const samples: any[] = Array.isArray(r.samples) ? r.samples : [];
+                  const labels = samples.map((s: any) => {
+                    const day = s?.surveyDay ? String(s.surveyDay) : "";
+                    const market = s?.marketName || (s?.marketId ? String(s.marketId) : "");
+                    if (day && market) return `${day} – ${market}`;
+                    return day || market || "...";
+                  });
+                  const extra = Math.max(0, count - labels.length);
+                  const head = `${labelMap[table] ?? table}: ${count} bản ghi`;
+                  return (
+                    <li key={`${table}-${count}`}>
+                      <div className="font-medium">{head}</div>
+                      {labels.length > 0 && (
+                        <div className="text-xs text-muted-foreground">
+                          Ví dụ: {labels.join(", ")}{extra > 0 ? ` … (+${extra})` : ""}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+          toast.error("Không thể xóa sản phẩm", { description: Description });
+        } else {
+          const reason = (res as any).message ||
+            "Không thể xóa sản phẩm vì đang được tham chiếu";
+          toast.error(reason);
+        }
+        return;
+      }
       toast.success(`Đã xóa sản phẩm: ${name}`);
     } catch (err: any) {
       toast.error(err?.message ?? "Xóa thất bại (có thể đang được tham chiếu)");

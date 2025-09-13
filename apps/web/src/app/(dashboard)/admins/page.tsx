@@ -14,7 +14,7 @@ export default function AdminsListPage() {
   const [q, setQ] = useState("");
   const list = useQuery(api.admins.listBrief, {});
   const toggleActive = useMutation(api.admins.toggleActive);
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("active");
   const [sortBy, setSortBy] = useState<"name" | "username">("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [me, setMe] = useState<{ isSuper: boolean; superUsername?: string } | null>(null);

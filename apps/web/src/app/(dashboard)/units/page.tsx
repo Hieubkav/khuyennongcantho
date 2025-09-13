@@ -19,7 +19,7 @@ export default function UnitsListPage() {
 
   // Local list for drag-sort UI
   const [list, setList] = useState<any[] | undefined>(undefined);
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("active");
   const [sortBy, setSortBy] = useState<"order" | "name">("order");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const allowDrag = !q.trim() && sortBy === "order" && statusFilter === "all";
@@ -65,9 +65,46 @@ export default function UnitsListPage() {
     setSortDir("asc");
   };
 
-  const onDelete = async (id: string, name: string) => {
+    const onDelete = async (id: string, name: string) => {
     try {
-      await doDelete({ id: id as any });
+      const res = await doDelete({ id: id as any });
+      if (res && typeof res === "object" && "success" in res && !res.success) {
+        const refs: any[] | undefined = (res as any).refs;
+        if (Array.isArray(refs) && refs.length > 0) {
+          const labelMap: Record<string, string> = { products: "Sản phẩm" };
+          const Description = (
+            <div className="space-y-2">
+              <div className="text-sm">
+                Đơn vị đang được sử dụng. Vui lòng cập nhật/xóa các bản ghi bên dưới trước khi xóa đơn vị.
+              </div>
+              <ul className="list-disc list-inside space-y-1">
+                {refs.map((r: any) => {
+                  const table: string = r.table || "unknown";
+                  const count: number = r.count ?? 0;
+                  const samples: any[] = Array.isArray(r.samples) ? r.samples : [];
+                  const labels = samples.map((s: any) => s?.name || s?.id || "...");
+                  const extra = Math.max(0, count - labels.length);
+                  const head = `${labelMap[table] ?? table}: ${count} bản ghi`;
+                  return (
+                    <li key={`${table}-${count}`}>
+                      <div className="font-medium">{head}</div>
+                      {labels.length > 0 && (
+                        <div className="text-xs text-muted-foreground">
+                          Ví dụ: {labels.join(", ")}{extra > 0 ? ` … (+${extra})` : ""}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+          toast.error("Không thể xóa đơn vị", { description: Description });
+        } else {
+          toast.error((res as any).message || "Không thể xóa đơn vị vì đang được tham chiếu");
+        }
+        return;
+      }
       toast.success(`Đã xóa đơn vị: ${name}`);
     } catch (err: any) {
       toast.error(err?.message ?? "Xóa thất bại");

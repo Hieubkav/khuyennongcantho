@@ -20,6 +20,7 @@ export default function MarketCreatePage() {
   const [provinceCode, setProvinceCode] = useState("");
   const [wardCode, setWardCode] = useState("");
   const [detail, setDetail] = useState("");
+  const [note, setNote] = useState("");
   const [order, setOrder] = useState<number>(0);
   const [saving, setSaving] = useState(false);
 
@@ -34,7 +35,6 @@ export default function MarketCreatePage() {
   );
 
   useEffect(() => {
-    // reset downstream when selection changes
     setWardCode("");
   }, [provinceCode]);
 
@@ -49,11 +49,39 @@ export default function MarketCreatePage() {
           wardCode: wardCode || undefined,
           detail: detail || undefined,
         },
+        note: note || undefined,
         order,
         active: true,
       });
       toast.success("Đã tạo chợ");
       router.push("/dashboard/markets");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Tạo thất bại");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const onSubmitAndNew = async () => {
+    try {
+      setSaving(true);
+      await create({
+        name,
+        addressJson: {
+          provinceCode: provinceCode || undefined,
+          wardCode: wardCode || undefined,
+          detail: detail || undefined,
+        },
+        note: note || undefined,
+        order,
+        active: true,
+      });
+      toast.success("Đã tạo, tiếp tục tạo mới");
+      setName("");
+      setDetail("");
+      setNote("");
+      setOrder(0);
+      // giữ nguyên chọn tỉnh/xã để thao tác nhanh
     } catch (err: any) {
       toast.error(err?.message ?? "Tạo thất bại");
     } finally {
@@ -100,6 +128,10 @@ export default function MarketCreatePage() {
               <Input id="detail" value={detail} onChange={(e) => setDetail(e.target.value)} placeholder="Số nhà, đường..." />
             </div>
             <div className="grid gap-2">
+              <Label htmlFor="note">Ghi chú</Label>
+              <Input id="note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ghi chú thêm" />
+            </div>
+            <div className="grid gap-2">
               <Label htmlFor="order">Thứ tự</Label>
               <Input id="order" type="number" value={order} onChange={(e) => setOrder(Number(e.target.value))} />
             </div>
@@ -108,6 +140,7 @@ export default function MarketCreatePage() {
             <Button type="button" variant="ghost" asChild>
               <Link href="/dashboard/markets">Hủy</Link>
             </Button>
+            <Button type="button" variant="secondary" onClick={onSubmitAndNew} disabled={saving}>{saving ? "Đang lưu..." : "Lưu & tạo mới"}</Button>
             <Button type="submit" disabled={saving}>{saving ? "Đang lưu..." : "Lưu"}</Button>
           </CardFooter>
         </Card>
@@ -115,3 +148,4 @@ export default function MarketCreatePage() {
     </div>
   );
 }
+

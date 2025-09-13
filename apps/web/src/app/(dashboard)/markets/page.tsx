@@ -7,7 +7,7 @@ import { api } from "@dohy/backend/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BadgeCheck, Edit, Plus, Search, Trash2, GripVertical, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { BadgeCheck, Edit, Plus, Search, GripVertical, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { addressLabel } from "@/lib/vn-locations";
 
@@ -18,18 +18,18 @@ export default function MarketsListPage() {
   const doReorder = useMutation(api.markets.reorder);
 
   const [list, setList] = useState<any[] | undefined>(undefined);
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("active");
   const [sortBy, setSortBy] = useState<"order" | "name">("order");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const allowDrag = !q.trim() && sortBy === "order" && statusFilter === "all";
 
   useEffect(() => {
-    if (markets) setList(markets);
+    if (markets) setList(markets as any);
     else setList(undefined);
   }, [markets]);
 
   const filtered = useMemo(() => {
-    if (!list) return undefined;
+    if (!list) return undefined as any[] | undefined;
     let base = !q
       ? list
       : list.filter((m) => {
@@ -88,10 +88,16 @@ export default function MarketsListPage() {
 
   const toggleSortName = () => {
     if (sortBy !== "name") {
+      // 1st click: switch to sort by name ASC
       setSortBy("name");
       setSortDir("asc");
+    } else if (sortDir === "asc") {
+      // 2nd click: switch to DESC
+      setSortDir("desc");
     } else {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+      // 3rd click: return to default (order ASC)
+      setSortBy("order");
+      setSortDir("asc");
     }
   };
   const resetSortOrder = () => {
@@ -135,7 +141,16 @@ export default function MarketsListPage() {
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
-                  <th className="py-2 pr-4 w-10">&nbsp;</th>
+                  <th className="py-2 pr-4 w-16">
+                    <button
+                      type="button"
+                      className="hover:underline cursor-pointer select-none"
+                      onClick={resetSortOrder}
+                      title="Hiển thị theo thứ tự đã sắp xếp"
+                    >
+                      STT
+                    </button>
+                  </th>
                   <th className="py-2 pr-4">
                     <button
                       type="button"
@@ -143,7 +158,7 @@ export default function MarketsListPage() {
                       onClick={toggleSortName}
                       title="Sắp xếp theo tên"
                     >
-                      Tên
+                      Tên chợ
                       {sortBy === "name" ? (
                         sortDir === "asc" ? (
                           <ArrowUp className="h-3.5 w-3.5" />
@@ -155,23 +170,15 @@ export default function MarketsListPage() {
                       )}
                     </button>
                   </th>
-                  <th className="py-2 pr-4">Địa chỉ</th>
-                  <th className="py-2 pr-4">
-                    <button
-                      type="button"
-                      className="hover:underline cursor-pointer select-none"
-                      onClick={resetSortOrder}
-                      title="Hiển thị theo thứ tự đã sắp xếp"
-                    >
-                      Thứ tự
-                    </button>
-                  </th>
+                  <th className="py-2 pr-4">Địa chỉ chợ</th>
+                  <th className="py-2 pr-4">Cán bộ khảo sát (Tên/Chưa phân công)</th>
+                  <th className="py-2 pr-4">Ghi chú</th>
                   <th className="py-2 pr-4">Trạng thái</th>
                   <th className="py-2 pr-4 text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered?.map((m) => (
+                {filtered?.map((m, idx) => (
                   <tr
                     key={m._id}
                     className="border-b last:border-0"
@@ -199,23 +206,21 @@ export default function MarketsListPage() {
                       >
                         <GripVertical className="h-4 w-4" />
                       </span>
+                      <span className="ml-2">{idx + 1}</span>
                     </td>
                     <td className="py-2 pr-4 font-medium">{m.name}</td>
                     <td className="py-2 pr-4 text-muted-foreground">
-                      <div>
-                        {addressLabel(
-                          m.addressJson?.provinceCode,
-                          m.addressJson?.districtCode,
-                          m.addressJson?.wardCode,
-                          m.addressJson?.detail
-                        )}
-                      </div>
-                      <div className="text-xs">
-                        <span className="text-foreground/60">Phu trach: </span>
-                        <MarketAssigneesCell marketId={m._id as any} />
-                      </div>
+                      {addressLabel(
+                        m.addressJson?.provinceCode,
+                        m.addressJson?.districtCode,
+                        m.addressJson?.wardCode,
+                        m.addressJson?.detail
+                      )}
                     </td>
-                    <td className="py-2 pr-4">{m.order ?? 0}</td>
+                    <td className="py-2 pr-4 text-muted-foreground">
+                      <MarketAssigneesCell marketId={m._id as any} />
+                    </td>
+                    <td className="py-2 pr-4 text-muted-foreground">{(m as any).note ? (m as any).note : <span className="text-muted-foreground">-</span>}</td>
                     <td className="py-2 pr-4">
                       <span
                         className={
@@ -238,21 +243,20 @@ export default function MarketsListPage() {
                             <Edit className="mr-2 h-4 w-4" /> Sửa
                           </Link>
                         </Button>
-                        {/* No delete to keep referential integrity simple */}
                       </div>
                     </td>
                   </tr>
                 ))}
                 {filtered !== undefined && filtered.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                    <td colSpan={7} className="py-8 text-center text-muted-foreground">
                       Không có dữ liệu
                     </td>
                   </tr>
                 )}
                 {filtered === undefined && (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-muted-foreground">
+                    <td colSpan={7} className="py-8 text-center text-muted-foreground">
                       Đang tải...
                     </td>
                   </tr>

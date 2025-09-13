@@ -86,13 +86,80 @@ export const toggleActive = mutation({
 export const safeDelete = mutation({
   args: { id: v.id("products") },
   handler: async (ctx, args) => {
-    const anyItem = await ctx.db
+    // Collect references across dependent tables for better UX
+    // 1) surveyItems
+    const surveyItems = await ctx.db
       .query("surveyItems")
       .filter((q) => q.eq(q.field("productId"), args.id))
-      .first();
-    if (anyItem) throw new Error("Cannot delete product: referenced by survey items");
+      .collect();
+
+    const surveyItemsCount = surveyItems.length;
+    let surveyItemSamples: any[] = [];
+    if (surveyItemsCount > 0) {
+      const sampleItems = surveyItems.slice(0, 3);
+      const surveyIds = Array.from(new Set(sampleItems.map((s) => s.surveyId)));
+      const surveys = await Promise.all(surveyIds.map((id) => ctx.db.get(id)));
+      const surveyMap = new Map(surveys.filter(Boolean).map((s) => [s!._id, s!]));
+      const marketIds = Array.from(new Set(surveys.filter(Boolean).map((s: any) => s!.marketId)));
+      const markets = await Promise.all(marketIds.map((mid) => ctx.db.get(mid)));
+      const marketMap = new Map(markets.filter(Boolean).map((m) => [m!._id, m!]));
+      surveyItemSamples = sampleItems.map((it) => {
+        const survey: any | null = surveyMap.get(it.surveyId) ?? null;
+        const market: any | null = survey ? marketMap.get(survey.marketId) ?? null : null;
+        return {
+          surveyId: it.surveyId,
+          surveyDay: survey?.surveyDay,
+          marketId: survey?.marketId,
+          marketName: market?.name,
+        };
+      });
+    }
+
+    // 2) reportItems (immutable snapshots)
+    const reportItems = await ctx.db
+      .query("reportItems")
+      .filter((q) => q.eq(q.field("productId"), args.id))
+      .collect();
+    const reportItemsCount = reportItems.length;
+    const reportItemSamples = reportItems.slice(0, 3).map((it) => ({
+      reportId: (it as any).reportId,
+      surveyDay: (it as any).surveyDay,
+      marketId: (it as any).marketId,
+      marketName: (it as any).marketName,
+    }));
+
+    const hasRefs = surveyItemsCount > 0 || reportItemsCount > 0;
+    if (hasRefs) {
+      return {
+        success: false,
+        code: "REFERENCED",
+        message: "Cannot delete product: referenced by other records",
+        refs: [
+          ...(surveyItemsCount
+            ? [
+                {
+                  table: "surveyItems",
+                  count: surveyItemsCount,
+                  samples: surveyItemSamples,
+                },
+              ]
+            : []),
+          ...(reportItemsCount
+            ? [
+                {
+                  table: "reportItems",
+                  count: reportItemsCount,
+                  samples: reportItemSamples,
+                },
+              ]
+            : []),
+        ],
+      } as const;
+    }
+
+    // Safe to delete
     await ctx.db.delete(args.id);
-    return { success: true };
+    return { success: true } as const;
   },
 });
 

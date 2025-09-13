@@ -41,6 +41,7 @@ export default defineSchema({
       wardCode: v.optional(v.string()),
       detail: v.optional(v.string()),
     }),
+    note: v.optional(v.string()),
     order: v.number(),
     active: v.boolean(),
   })
@@ -145,4 +146,3 @@ export default defineSchema({
     .index("by_reportId", ["reportId"]) // fetch all items for a report
     .index("by_report_market", ["reportId", "marketId"]), // filter per market within report
 });
-

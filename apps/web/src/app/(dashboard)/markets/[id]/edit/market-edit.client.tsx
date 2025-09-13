@@ -1,4 +1,5 @@
 "use client";
+
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
@@ -12,8 +13,10 @@ import { SelectSearch } from "@/components/ui/select-search";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { provinces, wardsOfProvince } from "@/lib/vn-locations";
+import { useRouter } from "next/navigation";
 
 export default function MarketEditClient({ id }: { id: string }) {
+  const router = useRouter();
   const list = useQuery(api.markets.listBrief, {});
   const update = useMutation(api.markets.update);
   const membersAll = useQuery(api.members.listBrief, {});
@@ -29,6 +32,7 @@ export default function MarketEditClient({ id }: { id: string }) {
   const [qProv, setQProv] = useState<string>("");
   const [qWard, setQWard] = useState<string>("");
   const [detail, setDetail] = useState<string>("");
+  const [note, setNote] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -37,6 +41,7 @@ export default function MarketEditClient({ id }: { id: string }) {
       setProvinceCode(current.addressJson?.provinceCode ?? "");
       setWardCode(current.addressJson?.wardCode ?? "");
       setDetail(current.addressJson?.detail ?? "");
+      setNote((current as any).note ?? "");
     }
   }, [current?._id]);
 
@@ -63,6 +68,7 @@ export default function MarketEditClient({ id }: { id: string }) {
           wardCode: wardCode || undefined,
           detail: detail || undefined,
         } as any,
+        note: note || undefined,
       } as any);
       toast.success("Đã cập nhật");
     } catch (err: any) {
@@ -121,10 +127,41 @@ export default function MarketEditClient({ id }: { id: string }) {
               <Label htmlFor="detail">Địa chỉ chi tiết</Label>
               <Input id="detail" value={detail} onChange={(e) => setDetail(e.target.value)} placeholder="Số nhà, đường..." />
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor="note">Ghi chú</Label>
+              <Input id="note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ghi chú thêm" />
+            </div>
           </CardContent>
           <CardFooter className="flex items-center justify-end gap-2">
             <Button type="button" variant="ghost" asChild>
               <Link href="/dashboard/markets">Hủy</Link>
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={async () => {
+                try {
+                  setSaving(true);
+                  await update({
+                    id: current._id as any,
+                    name,
+                    addressJson: {
+                      provinceCode: provinceCode || undefined,
+                      wardCode: wardCode || undefined,
+                      detail: detail || undefined,
+                    } as any,
+                    note: note || undefined,
+                  } as any);
+                  router.push("/dashboard/markets/new");
+                } catch (err: any) {
+                  toast.error(err?.message ?? "Cập nhật thất bại");
+                } finally {
+                  setSaving(false);
+                }
+              }}
+              disabled={saving}
+            >
+              {saving ? "Đang lưu..." : "Lưu & tạo mới"}
             </Button>
             <Button type="submit" disabled={saving}>{saving ? "Đang lưu..." : "Lưu"}</Button>
           </CardFooter>
@@ -178,3 +215,4 @@ export default function MarketEditClient({ id }: { id: string }) {
     </div>
   );
 }
+

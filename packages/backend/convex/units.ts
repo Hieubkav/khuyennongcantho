@@ -62,13 +62,48 @@ export const toggleActive = mutation({
 export const safeDelete = mutation({
   args: { id: v.id("units") },
   handler: async (ctx, args) => {
-    const inUse = await ctx.db
+    const productsUsing = await ctx.db
       .query("products")
       .withIndex("by_unitId", (q) => q.eq("unitId", args.id))
-      .first();
-    if (inUse) throw new Error("Cannot delete unit: referenced by products");
+      .collect();
+
+    if (productsUsing.length > 0) {
+      const productSamples = productsUsing.slice(0, 3).map((p) => ({ id: p._id, name: p.name }));
+      return {
+        success: false,
+        code: "REFERENCED",
+        message: "Cannot delete unit: referenced by products",
+        refs: [
+          {
+            table: "products",
+            count: productsUsing.length,
+            samples: productSamples,
+          },
+        ],
+      } as const;
+    }
+
     await ctx.db.delete(args.id);
-    return { success: true };
+    return { success: true } as const;
+  },
+});
+
+// Optional: summary API for UI to show dependency detail
+export const refSummary = query({
+  args: { id: v.id("units"), limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const list = await ctx.db
+      .query("products")
+      .withIndex("by_unitId", (q) => q.eq("unitId", args.id))
+      .collect();
+    const limit = Math.max(0, Math.min(args.limit ?? 5, 50));
+    const sample = list.slice(0, limit).map((p) => ({ id: p._id, name: p.name }));
+    return {
+      products: {
+        count: list.length,
+        sample,
+      },
+    };
   },
 });
 
@@ -85,3 +120,4 @@ export const reorder = mutation({
     return { success: true };
   },
 });
+

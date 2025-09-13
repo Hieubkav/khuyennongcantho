@@ -10,6 +10,7 @@ export const create = mutation({
       wardCode: v.optional(v.string()),
       detail: v.optional(v.string()),
     }),
+    note: v.optional(v.string()),
     order: v.optional(v.number()),
     active: v.optional(v.boolean()),
   },
@@ -17,6 +18,7 @@ export const create = mutation({
     const id = await ctx.db.insert("markets", {
       name: args.name,
       addressJson: args.addressJson,
+      note: args.note,
       order: args.order ?? 0,
       active: args.active ?? true,
     });
@@ -28,6 +30,7 @@ export const update = mutation({
   args: {
     id: v.id("markets"),
     name: v.optional(v.string()),
+    note: v.optional(v.string()),
     addressJson: v.optional(
       v.object({
         provinceCode: v.optional(v.string()),
@@ -40,6 +43,7 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const patch: Record<string, any> = {};
     if (args.name !== undefined) patch.name = args.name;
+    if (args.note !== undefined) patch.note = args.note;
     if (args.addressJson !== undefined) patch.addressJson = args.addressJson;
     await ctx.db.patch(args.id, patch);
     return await ctx.db.get(args.id);
@@ -81,6 +85,7 @@ export const listBrief = query({
       _id: m._id,
       name: m.name,
       addressJson: m.addressJson,
+      note: (m as any).note,
       active: m.active,
       order: m.order,
     }));
