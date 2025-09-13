@@ -8,10 +8,8 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 
 export default function ProductEditClient({ id }: { id: string }) {
-  const router = useRouter();
   const list = useQuery(api.products.listWithUnits, {});
   const units = useQuery(api.units.listBrief, {});
   const update = useMutation(api.products.update);
@@ -103,26 +101,6 @@ export default function ProductEditClient({ id }: { id: string }) {
             <Button type="button" variant="ghost" asChild>
               <Link href="/dashboard/products">Hủy</Link>
             </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={async () => {
-                if (!current) return;
-                try {
-                  if (!unitId) return toast.error("Vui lòng chọn đơn vị");
-                  setSaving(true);
-                  await update({ id: current._id as any, name, unitId: unitId as any, note: note || undefined, order });
-                  router.push("/dashboard/products/new");
-                } catch (err: any) {
-                  toast.error(err?.message ?? "Cập nhật thất bại");
-                } finally {
-                  setSaving(false);
-                }
-              }}
-              disabled={saving}
-            >
-              {saving ? "Đang lưu..." : "Lưu & tạo mới"}
-            </Button>
             <Button type="submit" disabled={saving}>{saving ? "Đang lưu..." : "Lưu"}</Button>
           </CardFooter>
         </Card>
@@ -130,3 +108,4 @@ export default function ProductEditClient({ id }: { id: string }) {
     </div>
   );
 }
+

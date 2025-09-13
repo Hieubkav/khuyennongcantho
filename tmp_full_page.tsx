@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -7,7 +7,7 @@ import { api } from "@dohy/backend/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BadgeCheck, Edit, Plus, Search, Trash2, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle } from "lucide-react";
+import { BadgeCheck, Edit, Plus, Search, Trash2, GripVertical, ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
@@ -191,7 +191,7 @@ export default function ProductsListPage() {
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
-                  <th className="py-2 pr-4 w-12">STT</th>
+                  <th className="py-2 pr-4 w-10">&nbsp;</th>
                   <th className="py-2 pr-4">
                     <button
                       type="button"
@@ -199,7 +199,7 @@ export default function ProductsListPage() {
                       onClick={toggleSortName}
                       title="Sắp xếp theo tên"
                     >
-                      Sản phẩm
+                      Tên
                       {sortBy === "name" ? (
                         sortDir === "asc" ? (
                           <ArrowUp className="h-3.5 w-3.5" />
@@ -211,14 +211,23 @@ export default function ProductsListPage() {
                       )}
                     </button>
                   </th>
-                  <th className="py-2 pr-4">Đơn vị tính</th>
-                  <th className="py-2 pr-4">Ghi chú</th>
+                  <th className="py-2 pr-4">Đơn vị</th>
+                  <th className="py-2 pr-4">
+                    <button
+                      type="button"
+                      className="hover:underline cursor-pointer select-none"
+                      onClick={resetSortOrder}
+                      title="Hiển thị theo thứ tự đã sắp xếp"
+                    >
+                      Thứ tự
+                    </button>
+                  </th>
                   <th className="py-2 pr-4">Trạng thái</th>
                   <th className="py-2 pr-4 text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered?.map((p, idx) => (
+                {filtered?.map((p) => (
                   <tr
                     key={p._id}
                     className="border-b last:border-0"
@@ -244,12 +253,12 @@ export default function ProductsListPage() {
                             : "Xóa tìm kiếm, hiển thị Tất cả và chọn Thứ tự để sắp xếp"
                         }
                       >
-                        {idx + 1}
+                        <GripVertical className="h-4 w-4" />
                       </span>
                     </td>
                     <td className="py-2 pr-4 font-medium">{p.name}</td>
                     <td className="py-2 pr-4">{p.unit ? (p.unit.abbr ? `${p.unit.abbr} (${p.unit.name})` : p.unit.name) : "-"}</td>
-                    <td className="py-2 pr-4">{p.note || "-"}</td>
+                    <td className="py-2 pr-4">{p.order ?? 0}</td>
                     <td className="py-2 pr-4">
                       <span
                         className={
@@ -335,4 +344,3 @@ function ProductDeleteButton({ id, name, onDelete }: { id: string; name: string;
     </Tooltip>
   ) as any;
 }
-
