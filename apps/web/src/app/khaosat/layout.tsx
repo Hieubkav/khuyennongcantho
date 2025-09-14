@@ -5,7 +5,7 @@ export default function KhaosatLayout({ children }: { children: React.ReactNode 
     <div className="min-h-dvh flex flex-col">
       <KhaosatHeader />
       <main className="flex-1">
-        <div className="mx-auto max-w-5xl px-4 py-4">
+        <div className="mx-auto max-w-5xl px-2 sm:px-4 py-4">
           {children}
         </div>
       </main>
@@ -13,4 +13,3 @@ export default function KhaosatLayout({ children }: { children: React.ReactNode 
     </div>
   );
 }
-

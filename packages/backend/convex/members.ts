@@ -165,8 +165,20 @@ export const surveysInRange = query({
       .query("surveys")
       .withIndex("by_memberId", (q) => q.eq("memberId", args.memberId))
       .collect();
-    return rows
+    const filtered = rows
       .filter((s) => s.surveyDay >= args.fromDay && s.surveyDay <= args.toDay)
       .sort((a, b) => b._creationTime - a._creationTime);
+
+    // Enrich with market name for UI convenience
+    const marketDocs = await Promise.all(filtered.map((s) => ctx.db.get(s.marketId)));
+    const marketMap = new Map(marketDocs.filter(Boolean).map((m) => [m!._id, m!]));
+
+    return filtered.map((s) => ({
+      _id: s._id,
+      surveyDay: s.surveyDay,
+      marketId: s.marketId,
+      marketName: marketMap.get(s.marketId)?.name ?? null,
+      active: s.active,
+    }));
   },
 });

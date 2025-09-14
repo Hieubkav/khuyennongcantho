@@ -14,6 +14,8 @@ async function computeSummary(ctx: any, fromDay: string, toDay: string) {
   const byMarket = new Map<string, any[]>();
   // Collect survey timestamps per market for UI expand
   const timesByMarket = new Map<string, number[]>();
+  // Collect survey ids with timestamps per market for deep links
+  const surveysByMarket = new Map<string, Array<{ id: string; time: number }>>();
   for (const s of ranged) {
     const key = String(s.marketId);
     if (!byMarket.has(key)) byMarket.set(key, []);
@@ -22,6 +24,8 @@ async function computeSummary(ctx: any, fromDay: string, toDay: string) {
     if (ts && ts > 0) {
       if (!timesByMarket.has(key)) timesByMarket.set(key, []);
       timesByMarket.get(key)!.push(ts);
+      if (!surveysByMarket.has(key)) surveysByMarket.set(key, []);
+      surveysByMarket.get(key)!.push({ id: String((s as any)._id), time: ts });
     }
   }
 
@@ -67,11 +71,15 @@ async function computeSummary(ctx: any, fromDay: string, toDay: string) {
   const includedSurveyIds = ranged.map((s: any) => s._id);
   // Expose marketSurveyTimes for live summary view only (ignored by generateRange)
   const marketSurveyTimes: Record<string, number[]> = {};
+  const marketSurveys: Record<string, Array<{ id: string; time: number }>> = {};
   for (const [k, v] of timesByMarket.entries()) {
     // sort descending (newest first)
     marketSurveyTimes[k] = v.sort((a, b) => b - a);
   }
-  return { summaryRows: result, includedSurveyIds, marketSurveyTimes };
+  for (const [k, v] of surveysByMarket.entries()) {
+    marketSurveys[k] = v.sort((a, b) => b.time - a.time);
+  }
+  return { summaryRows: result, includedSurveyIds, marketSurveyTimes, marketSurveys };
 }
 
 export const summaryByMarketRange = query({
@@ -172,10 +180,16 @@ export const getFull = query({
 
 // List immutable report items; optionally filter by market
 export const itemsByReport = query({
-  args: { reportId: v.id("reports"), marketId: v.optional(v.id("markets")) },
+  args: { reportId: v.id("reports"), marketId: v.optional(v.id("markets")), surveyId: v.optional(v.id("surveys")) },
   handler: async (ctx, args) => {
     let items: any[];
-    if (args.marketId) {
+    if (args.surveyId) {
+      // If surveyId is provided, prefer exact survey filter; marketId (if provided) will be validated client-side implicitly
+      items = await ctx.db
+        .query("reportItems")
+        .withIndex("by_report_survey", (q: any) => q.eq("reportId", args.reportId).eq("surveyId", args.surveyId))
+        .collect();
+    } else if (args.marketId) {
       items = await ctx.db
         .query("reportItems")
         .withIndex("by_report_market", (q: any) => q.eq("reportId", args.reportId).eq("marketId", args.marketId))

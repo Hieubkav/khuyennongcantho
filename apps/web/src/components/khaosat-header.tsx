@@ -19,7 +19,7 @@ export function KhaosatHeader() {
   };
 
   return (
-    <header className="w-full border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 sticky top-0 z-40">
+    <header className="w-full border-b bg-white/80 supports-[backdrop-filter]:bg-white/60">
       <div className="mx-auto max-w-5xl px-4 py-2 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <img src="https://kndvnn.cantho.vn/favicon-96x96.png" alt="Logo" className="h-8 w-8 rounded" />
@@ -64,4 +64,3 @@ export function KhaosatFooter() {
     </footer>
   );
 }
-

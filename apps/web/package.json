@@ -36,6 +36,7 @@
 		"@radix-ui/react-avatar": "^1.1.2",
 		"cmdk": "^1.0.0",
 		"recharts": "^2.12.7"
+		,"xlsx": "^0.18.5"
 	},
 	"devDependencies": {
 		"@tailwindcss/postcss": "^4.1.10",

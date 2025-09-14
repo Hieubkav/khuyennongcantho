@@ -7,7 +7,7 @@ import { api } from "@dohy/backend/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BadgeCheck, Trash2, ChevronRight, ChevronDown } from "lucide-react";
+import { BadgeCheck, Trash2, ChevronRight, ChevronDown, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { Pagination } from "@/components/pagination";
 import { useSettings } from "@/hooks/useSettings";
@@ -131,7 +131,7 @@ export default function ReportsPage() {
                   <th className="py-2 pr-4">Cán bộ khảo sát</th>
                   <th className="py-2 pr-4">Khảo sát</th>
                   <th className="py-2 pr-4">Số lần khảo sát</th>
-                  <th className="py-2 pr-4">Xem</th>
+                  <th className="py-2 pr-4 text-center w-16">Xem</th>
                 </tr>
               </thead>
               <tbody>
@@ -139,6 +139,8 @@ export default function ReportsPage() {
                   const mid = String(r.marketId);
                   const open = !!openMarkets[mid];
                   const times = (summary as any)?.marketSurveyTimes?.[mid] || [];
+                  const surveys = (summary as any)?.marketSurveys?.[mid] || [];
+                  const oneSurveyId = surveys && surveys.length === 1 && surveys[0]?.id ? String(surveys[0].id) : null;
                   return (
                     <Fragment key={mid}>
                       <tr className="border-b last:border-0">
@@ -156,24 +158,29 @@ export default function ReportsPage() {
                         <td className="py-2 pr-4 text-muted-foreground">{(r.memberNames || []).join(", ")}</td>
                         <td className="py-2 pr-4">{r.surveyCount > 0 ? "Da khao sat" : "Chua khao sat"}</td>
                         <td className="py-2 pr-4">{r.surveyCount}</td>
-                        <td className="py-2 pr-4">
-                          {existingReport ? (
-                            <Link href={`/dashboard/reports/${(existingReport as any)._id}?marketId=${mid}`} className="underline">
-                              Chi tiet
-                            </Link>
-                          ) : (
-                            <span className="text-muted-foreground">Chưa xuất</span>
-                          )}
-                        </td>
+                        <td className="py-2 pr-4 text-center"></td>
                       </tr>
                       {open && (
                         <tr className="border-b last:border-0">
                           <td></td>
                           <td colSpan={6} className="py-2 pr-4 text-sm text-muted-foreground">
                             {times.length > 0 ? (
-                              <div className="flex flex-wrap gap-3">
-                                {times.map((t: number, i: number) => (
-                                  <span key={i}>- {formatDateTimeVN(t)}</span>
+                              <div className="flex flex-col gap-2">
+                                {(
+                                  (surveys.length > 0 ? surveys : times.map((t: number) => ({ time: t, id: undefined })))
+                                ).map((s: any, i: number) => (
+                                  s.id ? (
+                                  <div key={i} className="flex items-center justify-between">
+                                    <Link href={`/dashboard/surveys/${s.id}`} className="underline">
+                                      - {formatDateTimeVN(s.time)}
+                                    </Link>
+                                    <Link href={`/dashboard/surveys/${s.id}`} className="inline-flex items-center justify-center text-foreground/70 hover:text-foreground" aria-label="Xem">
+                                      <Eye className="h-4 w-4" />
+                                    </Link>
+                                  </div>
+                                  ) : (
+                                    <span key={i}>- {formatDateTimeVN(s.time)}</span>
+                                  )
                                 ))}
                               </div>
                             ) : (
@@ -274,4 +281,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
