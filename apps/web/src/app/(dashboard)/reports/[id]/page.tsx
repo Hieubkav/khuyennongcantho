@@ -63,7 +63,7 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
   };
 
   if (!report) {
-    return <div className="text-sm text-muted-foreground">Dang tai chi tiet...</div>;
+    return <div className="text-sm text-muted-foreground">Đang tải chi tiết...</div>;
   }
 
   return (
@@ -71,16 +71,16 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
       <Card>
         <CardHeader>
           <CardTitle>
-            Bao cao: {report.fromDay} - {report.toDay}
+            Báo cáo: {report.fromDay} - {report.toDay}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <div>Sinh luc: {formatDateTimeVN(report.generatedAt)}</div>
-          <div>So bang: {report.includedSurveyIds?.length ?? 0}</div>
+          <div>Sinh lúc: {formatDateTimeVN(report.generatedAt)}</div>
+          <div>Số bảng: {report.includedSurveyIds?.length ?? 0}</div>
           <div>
-            Trang thai: {" "}
+            Trạng thái:{" "}
             <span className={report.active ? "text-green-600" : "text-gray-500"}>
-              {report.active ? "Dang dung" : "Tam tat"}
+              {report.active ? "Đang dùng" : "Tạm tắt"}
             </span>
           </div>
         </CardContent>
@@ -88,17 +88,17 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
 
       <Card>
         <CardHeader>
-          <CardTitle>Tong hop theo cho</CardTitle>
+          <CardTitle>Tổng hợp theo chợ</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
-                  <th className="py-2 pr-4">Cho</th>
-                  <th className="py-2 pr-4">Nhan vien</th>
-                  <th className="py-2 pr-4">So bang</th>
-                  <th className="py-2 pr-4">Bang day du</th>
+                  <th className="py-2 pr-4">Chợ</th>
+                  <th className="py-2 pr-4">Nhân viên</th>
+                  <th className="py-2 pr-4">Số bảng</th>
+                  <th className="py-2 pr-4">Bảng đầy đủ</th>
                 </tr>
               </thead>
               <tbody>
@@ -118,12 +118,12 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
 
       <Card>
         <CardHeader>
-          <CardTitle>BAO CAO TONG HOP trung binh gia</CardTitle>
+          <CardTitle>BÁO CÁO TỔNG HỢP trung bình giá</CardTitle>
         </CardHeader>
         <CardContent>
-          {!aggregates && <div className="text-sm text-muted-foreground">Dang tai chi tiet...</div>}
+          {!aggregates && <div className="text-sm text-muted-foreground">Đang tải chi tiết...</div>}
           {aggregates && aggregates.length === 0 && (
-            <div className="text-sm text-muted-foreground">Khong co du lieu</div>
+            <div className="text-sm text-muted-foreground">Không có dữ liệu</div>
           )}
           {aggregates?.map((group) => (
             <div key={group.marketId} className="mb-6">
@@ -134,9 +134,9 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
                 <table className="w-full border-collapse text-sm">
                   <thead>
                     <tr className="border-b text-left text-muted-foreground">
-                      <th className="py-2 pr-4">San pham</th>
-                      <th className="py-2 pr-4">Don vi</th>
-                      <th className="py-2 pr-4">Gia trung binh (VND)</th>
+                      <th className="py-2 pr-4">Sản phẩm</th>
+                      <th className="py-2 pr-4">Đơn vị</th>
+                      <th className="py-2 pr-4">Giá trung bình (VND)</th>
                     </tr>
                   </thead>
                   <tbody>

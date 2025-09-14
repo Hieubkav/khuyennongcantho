@@ -58,16 +58,11 @@ export default function ReportsPage() {
   }, [list, statusFilter]);
 
   // Reset to page 1 when filter changes
-  useEffect(() => {
-    setPage(1);
-  }, [statusFilter]);
+  useEffect(() => setPage(1), [statusFilter]);
 
   const onGenerate = async () => {
     try {
-      if (!myAdminId) {
-        toast.error("Khong xac dinh admin hien tai");
-        return;
-      }
+      if (!myAdminId) return toast.error("Khong xac dinh admin hien tai");
       const rep = await generate({ fromDay, toDay, createdByAdminId: myAdminId as any });
       toast.success("Da tao bao cao");
       location.href = `/dashboard/reports/${(rep as any)._id}`;
@@ -95,50 +90,47 @@ export default function ReportsPage() {
     }
   };
 
-  const formatDateTimeVN = (ms: number) => {
-    try {
-      return new Date(ms).toLocaleString("vi-VN", {
-        hour12: false,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      });
-    } catch {
-      return "";
-    }
-  };
+  const formatDateTimeVN = (ms: number) =>
+    new Date(ms).toLocaleString("vi-VN", {
+      hour12: false,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
 
   return (
     <div className="space-y-6">
+      {/* Live summary table */}
       <Card>
         <CardHeader>
-          <CardTitle>Bao cao khao sat</CardTitle>
+          <CardTitle>Báo cáo khảo sát</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap items-end gap-2">
             <div>
-              <div className="text-sm text-muted-foreground">Tu ngay</div>
+              <div className="text-sm text-muted-foreground">Từ ngày</div>
               <Input type="date" value={fromDay} onChange={(e) => setFromDay(e.target.value)} />
             </div>
             <div>
-              <div className="text-sm text-muted-foreground">Den ngay</div>
+              <div className="text-sm text-muted-foreground">Đến ngày</div>
               <Input type="date" value={toDay} onChange={(e) => setToDay(e.target.value)} />
             </div>
-            <Button onClick={onGenerate} disabled={!summary || !myAdminId}>Xuat bao cao</Button>
+            <Button onClick={onGenerate} disabled={!summary || !myAdminId}>Xuất báo cáo</Button>
           </div>
+
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
                   <th className="py-2 pr-4"></th>
                   <th className="py-2 pr-4">STT</th>
-                  <th className="py-2 pr-4">Ten cho</th>
-                  <th className="py-2 pr-4">Can bo khao sat</th>
-                  <th className="py-2 pr-4">Khao sat</th>
-                  <th className="py-2 pr-4">So lan khao sat</th>
+                  <th className="py-2 pr-4">Tên chợ</th>
+                  <th className="py-2 pr-4">Cán bộ khảo sát</th>
+                  <th className="py-2 pr-4">Khảo sát</th>
+                  <th className="py-2 pr-4">Số lần khảo sát</th>
                   <th className="py-2 pr-4">Xem</th>
                 </tr>
               </thead>
@@ -149,7 +141,7 @@ export default function ReportsPage() {
                   const times = (summary as any)?.marketSurveyTimes?.[mid] || [];
                   return (
                     <Fragment key={mid}>
-                      <tr key={mid} className="border-b last:border-0">
+                      <tr className="border-b last:border-0">
                         <td className="py-2 pr-2">
                           <button
                             aria-label="toggle"
@@ -170,12 +162,12 @@ export default function ReportsPage() {
                               Chi tiet
                             </Link>
                           ) : (
-                            <span className="text-muted-foreground">Chua xuat</span>
+                            <span className="text-muted-foreground">Chưa xuất</span>
                           )}
                         </td>
                       </tr>
                       {open && (
-                        <tr className="border-b last:border-0" key={`${mid}-detail`}>
+                        <tr className="border-b last:border-0">
                           <td></td>
                           <td colSpan={6} className="py-2 pr-4 text-sm text-muted-foreground">
                             {times.length > 0 ? (
@@ -185,7 +177,7 @@ export default function ReportsPage() {
                                 ))}
                               </div>
                             ) : (
-                              <span>Khong co lan khao sat nao</span>
+                              <span>Không có lần khảo sát nào</span>
                             )}
                           </td>
                         </tr>
@@ -209,26 +201,28 @@ export default function ReportsPage() {
         </CardContent>
       </Card>
 
+      {/* Recent reports */}
       <Card>
         <CardHeader>
-          <CardTitle>Bao cao gan day</CardTitle>
+          <CardTitle>Danh sách báo cáo</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-2 mb-4">
             <div className="hidden sm:flex items-center gap-1 rounded-md border p-1">
-              <Button size="sm" variant={statusFilter === "all" ? "default" : "ghost"} onClick={() => setStatusFilter("all")}>Tat ca</Button>
-              <Button size="sm" variant={statusFilter === "active" ? "default" : "ghost"} onClick={() => setStatusFilter("active")}>Dang dung</Button>
-              <Button size="sm" variant={statusFilter === "inactive" ? "default" : "ghost"} onClick={() => setStatusFilter("inactive")}>Tam tat</Button>
+              <Button size="sm" variant={statusFilter === "all" ? "default" : "ghost"} onClick={() => setStatusFilter("all")}>Tất cả</Button>
+              <Button size="sm" variant={statusFilter === "active" ? "default" : "ghost"} onClick={() => setStatusFilter("active")}>Đang dùng</Button>
+              <Button size="sm" variant={statusFilter === "inactive" ? "default" : "ghost"} onClick={() => setStatusFilter("inactive")}>Tạm dừng</Button>
             </div>
           </div>
+
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
-                  <th className="py-2 pr-4">Khoang ngay</th>
-                  <th className="py-2 pr-4">Sinh luc</th>
-                  <th className="py-2 pr-4">Trang thai</th>
-                  <th className="py-2 pr-4 text-right">Thao tac</th>
+                  <th className="py-2 pr-4">Khoảng ngày</th>
+                  <th className="py-2 pr-4">Sinh lúc</th>
+                  <th className="py-2 pr-4">Trạng thái</th>
+                  <th className="py-2 pr-4 text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -238,23 +232,19 @@ export default function ReportsPage() {
                     <td className="py-2 pr-4 text-muted-foreground">{formatDateTimeVN(r.generatedAt)}</td>
                     <td className="py-2 pr-4">
                       <span
-                        className={
-                          r.active
-                            ? "inline-flex items-center gap-1 text-green-600"
-                            : "inline-flex items-center gap-1 text-gray-500"
-                        }
+                        className={r.active ? "inline-flex items-center gap-1 text-green-600" : "inline-flex items-center gap-1 text-gray-500"}
                       >
                         <BadgeCheck className="h-4 w-4" />
-                        {r.active ? "Dang dung" : "Tam tat"}
+                        {r.active ? "Đang dùng" : "Tạm dừng"}
                       </span>
                     </td>
                     <td className="py-2 pr-0 text-right">
                       <div className="flex justify-end gap-2">
                         <Button size="sm" variant="secondary" onClick={() => onToggle(r._id as any, !r.active)}>
-                          {r.active ? "Tat" : "Kich hoat"}
+                          {r.active ? "Tắt" : "Kích hoạt"}
                         </Button>
                         <Button size="sm" variant="destructive" onClick={() => onDelete(r._id as any)}>
-                          <Trash2 className="mr-2 h-4 w-4" /> Xoa
+                          <Trash2 className="mr-2 h-4 w-4" /> Xóa
                         </Button>
                         <Button size="sm" variant="outline" asChild>
                           <Link href={`/dashboard/reports/${r._id}`}>Chi tiet</Link>
@@ -265,22 +255,23 @@ export default function ReportsPage() {
                 ))}
                 {filteredList && filteredList.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="py-6 text-center text-muted-foreground">Chua co bao cao</td>
+                    <td colSpan={4} className="py-6 text-center text-muted-foreground">Chưa có báo cáo</td>
                   </tr>
                 )}
                 {!filteredList && (
                   <tr>
-                    <td colSpan={4} className="py-6 text-center text-muted-foreground">Dang tai danh sach...</td>
+                    <td colSpan={4} className="py-6 text-center text-muted-foreground">Đang tải danh sách...</td>
                   </tr>
                 )}
               </tbody>
             </table>
+            {filteredList && filteredList.length > 0 && (
+              <Pagination page={page} total={filteredList.length} pageSize={pageSize} onPageChange={setPage} />
+            )}
           </div>
-          {filteredList && filteredList.length > 0 && (
-            <Pagination page={page} total={filteredList.length} pageSize={pageSize} onPageChange={setPage} />
-          )}
         </CardContent>
       </Card>
     </div>
   );
 }
+
