@@ -4,26 +4,66 @@ import { use, useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@dohy/backend/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useSearchParams } from "next/navigation";
 
 export default function ReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const p = use(params);
   const id = p?.id as string;
   const report = useQuery(api.reports.getFull, { id: id as any });
-  const items = useQuery(api.reports.itemsByReport as any, { reportId: id as any } as any);
+  const search = useSearchParams();
+  const marketIdParam = search?.get("marketId");
+  const items = useQuery(api.reports.itemsByReport as any, {
+    reportId: id as any,
+    marketId: marketIdParam ? (marketIdParam as any) : undefined,
+  } as any);
 
-  const byMarket = useMemo(() => {
-    if (!items) return undefined;
-    const map = new Map<string, any[]>();
-    for (const it of items) {
-      const key = `${it.marketId}`;
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(it);
+  // Group and aggregate average price per product for each market
+  const aggregates = useMemo(() => {
+    if (!items) return undefined as undefined | Array<{ marketId: string; marketName: string; rows: any[] }>;
+    const byMarket = new Map<string, any[]>();
+    for (const it of items as any[]) {
+      const key = String(it.marketId);
+      if (!byMarket.has(key)) byMarket.set(key, []);
+      byMarket.get(key)!.push(it);
     }
-    return Array.from(map.entries());
+    const result: Array<{ marketId: string; marketName: string; rows: any[] }> = [];
+    for (const [mid, group] of Array.from(byMarket.entries())) {
+      const byProduct = new Map<string, { productName: string; unit: string; prices: number[] }>();
+      for (const it of group) {
+        const key = String(it.productId);
+        const unit = it.unitAbbr || it.unitName || "";
+        if (!byProduct.has(key)) byProduct.set(key, { productName: it.productName, unit, prices: [] });
+        if (it.price !== null && it.price !== undefined) byProduct.get(key)!.prices.push(it.price as number);
+      }
+      const rows = Array.from(byProduct.values()).map((p) => ({
+        productName: p.productName,
+        unit: p.unit,
+        avg: p.prices.length > 0 ? (p.prices.reduce((a, b) => a + b, 0) / p.prices.length) : null,
+      }));
+      result.push({ marketId: mid, marketName: (group[0] as any)?.marketName ?? "", rows });
+    }
+    return result;
   }, [items]);
 
+  const nf = new Intl.NumberFormat("vi-VN", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  const formatDateTimeVN = (ms: number) => {
+    try {
+      return new Date(ms).toLocaleString("vi-VN", {
+        hour12: false,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
+    } catch {
+      return "";
+    }
+  };
+
   if (!report) {
-    return <div className="text-sm text-muted-foreground">Đang tải chi tiết...</div>;
+    return <div className="text-sm text-muted-foreground">Dang tai chi tiet...</div>;
   }
 
   return (
@@ -31,28 +71,34 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
       <Card>
         <CardHeader>
           <CardTitle>
-            Báo cáo: {report.fromDay} - {report.toDay}
+            Bao cao: {report.fromDay} - {report.toDay}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <div>Generated at: {new Date(report.generatedAt).toLocaleString()}</div>
-          <div>Included surveys: {report.includedSurveyIds?.length ?? 0}</div>
+          <div>Sinh luc: {formatDateTimeVN(report.generatedAt)}</div>
+          <div>So bang: {report.includedSurveyIds?.length ?? 0}</div>
+          <div>
+            Trang thai: {" "}
+            <span className={report.active ? "text-green-600" : "text-gray-500"}>
+              {report.active ? "Dang dung" : "Tam tat"}
+            </span>
+          </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Tổng hợp theo chợ</CardTitle>
+          <CardTitle>Tong hop theo cho</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
-                  <th className="py-2 pr-4">Chợ</th>
-                  <th className="py-2 pr-4">Nhân viên</th>
-                  <th className="py-2 pr-4">Số bảng</th>
-                  <th className="py-2 pr-4">Bảng đầy đủ</th>
+                  <th className="py-2 pr-4">Cho</th>
+                  <th className="py-2 pr-4">Nhan vien</th>
+                  <th className="py-2 pr-4">So bang</th>
+                  <th className="py-2 pr-4">Bang day du</th>
                 </tr>
               </thead>
               <tbody>
@@ -72,35 +118,33 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
 
       <Card>
         <CardHeader>
-          <CardTitle>Chi tiết snapshot theo chợ</CardTitle>
+          <CardTitle>BAO CAO TONG HOP trung binh gia</CardTitle>
         </CardHeader>
         <CardContent>
-          {!byMarket && <div className="text-sm text-muted-foreground">Đang tải chi tiết...</div>}
-          {byMarket && byMarket.length === 0 && (
-            <div className="text-sm text-muted-foreground">Không có dữ liệu</div>
+          {!aggregates && <div className="text-sm text-muted-foreground">Dang tai chi tiet...</div>}
+          {aggregates && aggregates.length === 0 && (
+            <div className="text-sm text-muted-foreground">Khong co du lieu</div>
           )}
-          {byMarket?.map(([marketId, group]: any) => (
-            <div key={marketId} className="mb-6">
+          {aggregates?.map((group) => (
+            <div key={group.marketId} className="mb-6">
               <div className="mb-2 font-medium">
-                {group[0]?.marketName}
+                {group.marketName}
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-sm">
                   <thead>
                     <tr className="border-b text-left text-muted-foreground">
-                      <th className="py-2 pr-4">Sản phẩm</th>
-                      <th className="py-2 pr-4">Đơn vị</th>
-                      <th className="py-2 pr-4">Giá</th>
-                      <th className="py-2 pr-4">Ghi chú</th>
+                      <th className="py-2 pr-4">San pham</th>
+                      <th className="py-2 pr-4">Don vi</th>
+                      <th className="py-2 pr-4">Gia trung binh (VND)</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {group.map((it: any) => (
-                      <tr key={String(it.productId) + String(it.surveyId)} className="border-b last:border-0">
-                        <td className="py-2 pr-4">{it.productName}</td>
-                        <td className="py-2 pr-4 text-muted-foreground">{it.unitAbbr || it.unitName || ""}</td>
-                        <td className="py-2 pr-4">{it.price ?? "-"}</td>
-                        <td className="py-2 pr-4 text-muted-foreground">{it.note ?? ""}</td>
+                    {group.rows.map((row: any) => (
+                      <tr key={row.productName} className="border-b last:border-0">
+                        <td className="py-2 pr-4">{row.productName}</td>
+                        <td className="py-2 pr-4 text-muted-foreground">{row.unit}</td>
+                        <td className="py-2 pr-4">{row.avg !== null ? `${nf.format(row.avg)} VND` : "-"}</td>
                       </tr>
                     ))}
                   </tbody>
