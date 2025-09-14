@@ -171,8 +171,9 @@ export const listBrief = query({
 });
 
 export const getFull = query({
-  args: { id: v.id("reports") },
+  args: { id: v.optional(v.id("reports")) },
   handler: async (ctx, args) => {
+    if (!args.id) return null;
     const report = await ctx.db.get(args.id);
     return report ?? null;
   },
